@@ -90,7 +90,7 @@ The brief defines 8 user stories. Each is translated below into a concrete, impl
 | Backend framework | Fastify | latest |
 | ORM | Prisma | latest |
 | Database | PostgreSQL (via Docker) | 16-alpine |
-| Authentication | Auth.js (Credentials provider) | latest |
+| Authentication | `@fastify/secure-session` + bcrypt | latest |
 | API documentation | `@fastify/swagger` + `fastify-type-provider-zod` (OpenAPI 3.x) | latest |
 | Schema validation | Zod | latest |
 | Backend cache | `lru-cache` (in-memory) | latest |
@@ -210,9 +210,9 @@ Build the project in this order. Do not skip ahead; each phase relies on the pre
 11. Commit baseline: `chore: scaffold project structure`.
 
 ### Phase 1 — Database + Auth
-1. Define Prisma schema for `User`, `Session`, `Parcel`, `UserPreferences` (see §8).
+1. Define Prisma schema for `User`, `Parcel`, `UserPreferences` (see §8).
 2. Run first migration; verify Prisma Client generates.
-3. Implement `api/src/auth/`: Auth.js Credentials provider, bcrypt hashing, Prisma adapter, session management.
+3. Implement `api/src/auth/`: register `@fastify/secure-session` plugin, bcrypt password hashing/verification helpers, session typing on the Fastify request.
 4. Implement signup + login endpoints with Zod-validated bodies (schemas in `shared/`).
 5. Seed a demo user (`agent@agriwatch.demo` / `agriwatch`) and one sample parcel.
 6. Build minimal login + signup UI in `web/`. TanStack Router with auth-protected routes (`beforeLoad` guard).
@@ -345,11 +345,17 @@ External weather APIs are cached server-side via `lru-cache`:
 - Frontend cache: TanStack Query (stale-while-revalidate, refetch on focus, default `staleTime` configured per query)
 
 ### 7.4 Authentication flow
-- Auth.js with the **Credentials provider** (email + password)
+- **Email + password** credentials, validated via Zod schemas in `shared/`
 - Passwords hashed with **bcrypt** (work factor 12)
-- Sessions: secure HTTP-only cookies, managed by Auth.js
-- Prisma adapter for the `User` and `Session` tables
-- Frontend route guards via TanStack Router `beforeLoad` (redirect to `/login` if not authenticated)
+- Sessions: **encrypted HTTP-only cookies** via `@fastify/secure-session` (Fastify's first-party plugin) — stateless, no DB `Session` table needed; the session payload is encrypted in the cookie itself with `SESSION_SECRET`
+- Endpoints (all under `/api/auth`):
+  - `POST /signup` — create user, hash password, set session cookie
+  - `POST /login` — verify password, set session cookie
+  - `POST /logout` — clear session cookie
+  - `GET /me` — return the current user (or 401 if no valid session)
+- Frontend route guards via TanStack Router `beforeLoad` (redirect to `/login` if `/api/auth/me` returns 401)
+
+**Why `@fastify/secure-session` over Auth.js**: Auth.js v5 is optimized for fullstack frameworks (Next.js, SvelteKit). On a separate Fastify backend it requires ~80-120 lines of glue code to bridge Web Fetch API with Fastify req/reply. `@fastify/secure-session` is the idiomatic Fastify-native equivalent: same security guarantees (HTTP-only, encrypted, sliding expiry), 10 lines of setup, no DB session table. The README documents this trade-off.
 
 ### 7.5 API contract — Fastify + Zod + OpenAPI
 - Every route validates input with a Zod schema from `shared/`
@@ -375,7 +381,6 @@ model User {
 
   parcels      Parcel[]
   preferences  UserPreferences?
-  sessions     Session[]
 }
 
 model Parcel {
@@ -408,13 +413,6 @@ model UserPreferences {
   user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-model Session {
-  id           String   @id @default(cuid())
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
 ```
 
 **Constraints**:
@@ -594,7 +592,7 @@ These are explicit decisions. Do not introduce them.
 
 | # | Decision | Short rationale |
 |---|---|---|
-| D1 | Auth.js Credentials (email + password) | Ecorobotix uses Infomaniak/kSuite, not Google Workspace → OAuth Google would not work for their emails; passwordless adds setup friction; credentials = zero friction for reviewer |
+| D1 | Email + password via `@fastify/secure-session` + bcrypt (originally planned with Auth.js, pivoted) | Ecorobotix uses Infomaniak/kSuite, not Google Workspace → OAuth Google would not work for their emails; passwordless adds setup friction; credentials = zero friction for reviewer. Auth.js is optimized for fullstack frameworks (Next.js); on a separate Fastify backend, `@fastify/secure-session` is the idiomatic native choice with the same security guarantees and ~10 lines of setup vs ~100 lines of glue code. |
 | D2 | PostgreSQL in Docker Compose, no Supabase | 3 tables, no realtime/storage needs; Supabase oversizes the stack and complicates "clone + run" |
 | D3 | `Parcel` model (not "Location") + dual search (geocoding + lat/lng) + Leaflet map view | Aligns with agri domain vocabulary; supports remote parcels not in any geocoder; map view honors "track 10+ sites quickly" |
 | D4 | 7-day daily forecast (extensible to 14), hourly drill-down, 4 toggleable metrics | 7d is the reliable horizon; hourly drill-down for same-day decisions; 4 metrics critical for agri (not just temperature) |
