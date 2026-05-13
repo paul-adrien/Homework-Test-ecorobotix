@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+build/
+.vite/
+*.tsbuildinfo
+
+# Test artefacts
+coverage/
+playwright-report/
+test-results/
+.vitest/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# OS / IDE
+.DS_Store
+.vscode/
+.idea/
+*.swp
+
+# Internal working notes (not shipped)
+sujet.md
+points_restants.md
+
+# Original brief PDF (provided by recruiter, kept locally only)
+Ecorobotix - Fullstack challenge.pdf

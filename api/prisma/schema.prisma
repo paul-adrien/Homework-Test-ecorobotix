@@ -1,0 +1,53 @@
+// AgriWatch — PostgreSQL schema.
+// See CLAUDE.md §8 for rationale and constraints.
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String           @id @default(cuid())
+  email        String           @unique
+  passwordHash String
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  parcels     Parcel[]
+  preferences UserPreferences?
+}
+
+model Parcel {
+  id          String   @id @default(cuid())
+  userId      String
+  label       String // user-chosen name ("North field — wheat 2026")
+  displayName String? // informational, from geocoding
+  latitude    Float
+  longitude   Float
+  countryCode String?
+  timezone    String?
+  cropType    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, label])
+  @@index([userId])
+}
+
+model UserPreferences {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  temperatureUnit   String   @default("celsius") // "celsius" | "fahrenheit"
+  defaultParcelId   String? // nullable, no auto-fallback if the referenced parcel is deleted
+  preferredProvider String   @default("open-meteo")
+  updatedAt         DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}

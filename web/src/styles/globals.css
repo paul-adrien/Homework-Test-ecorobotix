@@ -1,0 +1,54 @@
+@import "tailwindcss";
+
+/*
+ * AgriWatch design tokens.
+ *
+ * Brand colors extracted directly from the official Ecorobotix logo SVG
+ * (`/wp-content/themes/ecorobotix/img/logo-main-top.svg`):
+ *   - Ecorobotix green: #4DC270
+ *   - Ecorobotix navy:  #0D2743
+ */
+@theme {
+  /* Brand */
+  --color-primary: #4dc270;
+  --color-primary-hover: #3da859;
+  --color-primary-light: #e5f4ea;
+  --color-dark-navy: #0d2743;
+
+  /* Neutrals */
+  --color-background: #ffffff;
+  --color-surface: #ffffff;
+  --color-surface-alt: #f8fafc;
+  --color-border-subtle: #e5e7eb;
+  --color-text-primary: #0d2743;
+  --color-text-secondary: #6b7280;
+  --color-text-muted: #9ca3af;
+
+  /* Semantic */
+  --color-success: #4dc270;
+  --color-warning: #d97706;
+  --color-danger: #b91c1c;
+  --color-info: #2563eb;
+
+  /* Typography */
+  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+/* Tabular numbers on mono font for vertical digit alignment (temperatures, mm of rain) */
+.font-mono {
+  font-feature-settings: "tnum";
+}
+
+/* Base */
+html,
+body {
+  font-family: var(--font-sans);
+  color: var(--color-text-primary);
+  background-color: var(--color-background);
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  min-height: 100dvh;
+}

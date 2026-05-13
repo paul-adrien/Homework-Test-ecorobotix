@@ -1,0 +1,37 @@
+{
+  "name": "agriwatch",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AgriWatch — weather monitoring dashboard for field agents managing multiple parcels",
+  "packageManager": "pnpm@10.32.1",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "setup": "pnpm setup:install && pnpm setup:db",
+    "setup:install": "concurrently -n shared,api,web -c yellow,green,blue \"pnpm -C shared install\" \"pnpm -C api install\" \"pnpm -C web install\"",
+    "setup:db": "pnpm -C api db:migrate && pnpm -C api db:seed",
+    "dev": "concurrently -n web,api -c blue,green \"pnpm -C web dev\" \"pnpm -C api dev\"",
+    "build": "pnpm -C api build && pnpm -C web build",
+    "test": "pnpm -C shared test && pnpm -C api test && pnpm -C web test",
+    "test:e2e": "pnpm -C web test:e2e",
+    "lint": "biome check .",
+    "format": "biome format --write .",
+    "typecheck": "pnpm -C shared typecheck && pnpm -C api typecheck && pnpm -C web typecheck",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.0.0",
+    "@commitlint/cli": "^19.5.0",
+    "@commitlint/config-conventional": "^19.5.0",
+    "concurrently": "^9.0.0",
+    "husky": "^9.1.0",
+    "lint-staged": "^15.2.0",
+    "typescript": "^5.7.0"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx,json,md,css}": [
+      "biome check --write --no-errors-on-unmatched"
+    ]
+  }
+}
