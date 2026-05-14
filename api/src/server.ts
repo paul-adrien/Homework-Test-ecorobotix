@@ -11,8 +11,9 @@ import {
   validatorCompiler,
   type ZodTypeProvider,
 } from "fastify-type-provider-zod";
-import { env } from "./env.ts";
-import { authRoutes } from "./routes/auth.ts";
+import { env } from "./config/env.ts";
+import { registerAuthModule } from "./modules/auth/auth.module.ts";
+import { prisma } from "./shared/db/prisma.client.ts";
 
 async function buildServer() {
   const app = Fastify({
@@ -37,8 +38,8 @@ async function buildServer() {
 
   await app.register(fastifySecureSession, {
     // Derive a 32-byte symmetric key deterministically from SESSION_SECRET so the secret
-    // can be rotated by editing one env var. In production this should be a high-entropy
-    // value (32+ chars) loaded from a secret manager.
+    // can be rotated by editing a single env var. In production this should be a
+    // high-entropy value (32+ chars) loaded from a secret manager.
     key: createHash("sha256").update(env.SESSION_SECRET).digest(),
     cookie: {
       path: "/",
@@ -73,7 +74,7 @@ async function buildServer() {
 
   app.get("/health", () => ({ status: "ok" }));
 
-  await app.register(authRoutes, { prefix: "/api" });
+  await registerAuthModule(app, { prisma });
 
   return app;
 }

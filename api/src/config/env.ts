@@ -10,7 +10,7 @@ const envSchema = z.object({
   API_PORT: z.coerce.number().int().positive().default(3000),
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
 
-  // Optional providers (Phase 2). Empty string treated as undefined.
+  // Optional providers (Phase 2). Empty strings are treated as undefined.
   OPENWEATHERMAP_API_KEY: z
     .string()
     .optional()

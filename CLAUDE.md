@@ -104,66 +104,92 @@ The brief defines 8 user stories. Each is translated below into a concrete, impl
 
 ## 4. Repository Structure
 
-Target layout. Build this incrementally during scaffolding (Phase 0).
+The API is organised by **bounded context** (one folder under `modules/` per sub-domain) and each module follows a **DDD-light** layered structure: `domain/` (pure business types and errors), `application/` (use cases that orchestrate domain + ports), `ports/` (interfaces describing what the infrastructure must provide), `infrastructure/` (concrete adapters like Prisma, bcrypt, Fastify session), and `interface/` (HTTP routes — the inbound adapter). A small `<module>.module.ts` file is the composition root that wires the adapters into the use cases and registers the routes.
+
+The frontend mirrors the same organisation: feature folders per bounded context (`auth/`, `parcels/`, `weather/`, `preferences/`) with sub-folders for `api/`, `hooks/`, `components/`, `pages/`.
 
 ```
 homework_ecorobotix/
-├── web/                          # Frontend
+├── web/                                # Frontend
 │   ├── src/
-│   │   ├── routes/               # TanStack Router file-based routes
-│   │   ├── components/           # Shared components (Button, Card, ...)
-│   │   ├── features/             # Feature-scoped modules
+│   │   ├── app/                        # App-level setup: TanStack Router config, providers
+│   │   ├── modules/                    # Feature modules (mirror api/src/modules)
 │   │   │   ├── auth/
-│   │   │   ├── parcels/
-│   │   │   ├── weather/
-│   │   │   └── preferences/
-│   │   ├── lib/                  # Helpers (unit conversion, date formatting)
-│   │   ├── styles/               # Tailwind base
+│   │   │   │   ├── api/                # fetch wrappers for /api/auth/*
+│   │   │   │   ├── hooks/              # useCurrentUser, useLogin, useSignup
+│   │   │   │   ├── components/         # LoginForm, SignupForm
+│   │   │   │   └── pages/              # /login, /signup screens
+│   │   │   ├── parcels/                # (Phase 2)
+│   │   │   ├── weather/                # (Phase 3)
+│   │   │   └── preferences/            # (Phase 5)
+│   │   ├── shared/
+│   │   │   ├── ui/                     # shadcn primitives (Button, Card, Input, ...)
+│   │   │   ├── lib/                    # cn(), formatters, date helpers
+│   │   │   └── styles/                 # globals.css with @theme tokens
 │   │   └── main.tsx
 │   ├── index.html
 │   ├── vite.config.ts
-│   ├── tailwind.config.ts
-│   └── package.json              # depends on "@agriwatch/shared": "file:../shared"
+│   └── package.json                    # depends on "@agriwatch/shared": "file:../shared"
 │
-├── api/                          # Backend
+├── api/                                # Backend
 │   ├── src/
-│   │   ├── routes/               # Fastify route plugins per resource
-│   │   ├── weather/              # WeatherProvider implementations
-│   │   │   ├── provider.ts       # WeatherProvider interface + factory
-│   │   │   ├── open-meteo.ts
-│   │   │   ├── yr-no.ts
-│   │   │   ├── bright-sky.ts     # (P2 — phase 2)
-│   │   │   ├── openweathermap.ts # (P2, optional API key)
-│   │   │   └── weatherapi.ts     # (P2, optional API key)
-│   │   ├── auth/                 # Auth.js Credentials adapter
-│   │   ├── cache/                # lru-cache wrapper
-│   │   ├── db/                   # Prisma client singleton
-│   │   ├── env.ts                # Zod-validated env vars
-│   │   └── server.ts
+│   │   ├── modules/                    # Bounded contexts — one folder per sub-domain
+│   │   │   └── auth/                   # `auth` bounded context
+│   │   │       ├── domain/             # Pure business types, value objects, errors
+│   │   │       │   ├── user.ts
+│   │   │       │   └── auth.errors.ts
+│   │   │       ├── application/        # Use cases (orchestrate domain + ports)
+│   │   │       │   ├── signup.usecase.ts
+│   │   │       │   ├── login.usecase.ts
+│   │   │       │   └── get-current-user.usecase.ts
+│   │   │       ├── ports/              # Interfaces — what infrastructure must provide
+│   │   │       │   ├── user.repository.ts
+│   │   │       │   └── password-hasher.ts
+│   │   │       ├── infrastructure/     # Concrete adapters
+│   │   │       │   ├── user.repository.prisma.ts
+│   │   │       │   ├── password-hasher.bcrypt.ts
+│   │   │       │   └── session-store.fastify.ts
+│   │   │       ├── interface/          # HTTP adapter (inbound)
+│   │   │       │   ├── auth.routes.ts
+│   │   │       │   └── require-auth.middleware.ts
+│   │   │       └── auth.module.ts      # Composition root: wires adapters → use cases → routes
+│   │   ├── shared/                     # Cross-cutting infrastructure
+│   │   │   └── db/
+│   │   │       └── prisma.client.ts    # Prisma singleton
+│   │   ├── config/
+│   │   │   └── env.ts                  # Zod-validated env vars
+│   │   └── server.ts                   # Bootstrap (registers each module)
 │   ├── prisma/
 │   │   ├── schema.prisma
 │   │   ├── migrations/
 │   │   └── seed.ts
-│   └── package.json              # depends on "@agriwatch/shared": "file:../shared"
+│   └── package.json
 │
-├── shared/                       # Shared Zod schemas + types (API contracts)
+├── shared/                             # Shared Zod schemas + types (API contracts)
 │   ├── src/
-│   │   ├── parcel.schema.ts
-│   │   ├── weather.types.ts
 │   │   ├── auth.schema.ts
-│   │   ├── preferences.schema.ts
+│   │   ├── parcel.schema.ts            # (Phase 2)
+│   │   ├── weather.types.ts            # (Phase 3)
+│   │   ├── preferences.schema.ts       # (Phase 5)
 │   │   └── index.ts
-│   └── package.json              # name: "@agriwatch/shared"
+│   └── package.json                    # name: "@agriwatch/shared"
 │
-├── docker-compose.yml            # postgres only
+├── docker-compose.yml                  # postgres only
 ├── .env.example
-├── .gitignore                    # must ignore: sujet.md, points_restants.md, .env, node_modules, .vite, build artefacts
-├── biome.json                    # root linter/formatter config
-├── tsconfig.base.json            # shared TS strict config
-├── package.json                  # root scripts (setup, dev, build, ...)
-├── README.md                     # deliverable for reviewer
-└── CLAUDE.md                     # this file (shipped, dev-facing)
+├── .gitignore                          # must ignore sujet.md, points_restants.md, .env, node_modules, build artefacts
+├── biome.json                          # root linter/formatter config
+├── tsconfig.base.json                  # shared TS strict config
+├── package.json                        # root scripts (setup, dev, build, ...)
+├── README.md                           # deliverable for reviewer
+└── CLAUDE.md                           # this file (shipped, dev-facing)
 ```
+
+**DDD-light rules for new modules**:
+- One folder per **bounded context** under `modules/`. Never mix two domains in the same folder.
+- Use cases (`application/`) **never import** from `infrastructure/` directly. They depend only on **ports** (`ports/`).
+- The **composition root** (`<module>.module.ts`) is the only place that instantiates infrastructure adapters and injects them into use cases.
+- HTTP handlers (`interface/`) are **thin translators**: parse request, call use case, map result or domain error to HTTP. No business logic.
+- Cross-cutting concerns (the Prisma client, error mappers) go under `src/shared/`, never inside a module.
 
 **Important**: `sujet.md` and `points_restants.md` are internal working notes (French) and must be added to `.gitignore`. Do not commit them.
 
