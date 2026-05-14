@@ -19,7 +19,7 @@
       "!**/prisma/migrations",
       "!sujet.md",
       "!points_restants.md",
-      "!web/src/styles/globals.css"
+      "!web/src/shared/styles/globals.css"
     ]
   },
   "linter": {
