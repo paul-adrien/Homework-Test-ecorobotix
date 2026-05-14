@@ -1,16 +1,16 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RouterProvider } from "@tanstack/react-router";
 import { useState } from "react";
-import { router } from "./router.tsx";
+import { createAppRouter } from "./router.tsx";
 
 /**
  * App-level providers. Mounted once at the root.
  *
  * - QueryClient is created in component state so it survives Fast Refresh in
  *   dev and is not recreated on each render in prod.
- * - The TanStack Router is plugged in via RouterProvider; route components
- *   live under `modules/<bounded-context>/pages/` and are referenced from
- *   `router.tsx`.
+ * - The router is created with the QueryClient in its context, so route
+ *   `beforeLoad` guards can ensureQueryData() on the auth/me query without
+ *   reaching for a singleton.
  */
 export function Providers() {
   const [queryClient] = useState(
@@ -28,6 +28,8 @@ export function Providers() {
         },
       }),
   );
+
+  const [router] = useState(() => createAppRouter(queryClient));
 
   return (
     <QueryClientProvider client={queryClient}>
