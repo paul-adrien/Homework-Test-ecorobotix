@@ -25,8 +25,8 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
     defaultValues: { email: "", password: "" },
   });
 
-  const submit = handleSubmit(async (values) => {
-    await loginMutation.mutateAsync(values, {
+  const submit = handleSubmit((values) => {
+    loginMutation.mutate(values, {
       onSuccess: () => onSuccess?.(),
     });
   });

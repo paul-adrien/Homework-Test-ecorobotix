@@ -25,8 +25,8 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
     defaultValues: { email: "", password: "" },
   });
 
-  const submit = handleSubmit(async (values) => {
-    await signupMutation.mutateAsync(values, {
+  const submit = handleSubmit((values) => {
+    signupMutation.mutate(values, {
       onSuccess: () => onSuccess?.(),
     });
   });
