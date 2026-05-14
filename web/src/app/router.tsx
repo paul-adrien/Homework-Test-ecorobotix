@@ -4,10 +4,11 @@ import {
   createRoute,
   createRouter,
   Outlet,
-  redirect,
 } from "@tanstack/react-router";
-import { getCurrentUser } from "@/modules/auth/api/auth.api.ts";
-import { currentUserQueryKey } from "@/modules/auth/hooks/use-current-user.ts";
+import {
+  redirectIfAuthenticated,
+  requireAuthenticated,
+} from "@/modules/auth/guards/route-guards.ts";
 import { LoginPage } from "@/modules/auth/pages/login-page.tsx";
 import { SignupPage } from "@/modules/auth/pages/signup-page.tsx";
 import { DashboardPage } from "./dashboard-page.tsx";
@@ -20,53 +21,24 @@ const rootRoute = createRootRouteWithContext<RouterContext>()({
   component: () => <Outlet />,
 });
 
-/**
- * `beforeLoad` uses `ensureQueryData` so the user lookup hits the cache when
- * possible and only fires a request when the cache is empty/stale. The query
- * function returns `null` on 401, so we don't even throw on unauthenticated.
- */
 const dashboardRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/",
-  beforeLoad: async ({ context }) => {
-    const user = await context.queryClient.ensureQueryData({
-      queryKey: currentUserQueryKey,
-      queryFn: getCurrentUser,
-    });
-    if (!user) {
-      throw redirect({ to: "/login" });
-    }
-  },
+  beforeLoad: ({ context }) => requireAuthenticated(context),
   component: DashboardPage,
 });
 
 const loginRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/login",
-  beforeLoad: async ({ context }) => {
-    const user = await context.queryClient.ensureQueryData({
-      queryKey: currentUserQueryKey,
-      queryFn: getCurrentUser,
-    });
-    if (user) {
-      throw redirect({ to: "/" });
-    }
-  },
+  beforeLoad: ({ context }) => redirectIfAuthenticated(context),
   component: LoginPage,
 });
 
 const signupRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/signup",
-  beforeLoad: async ({ context }) => {
-    const user = await context.queryClient.ensureQueryData({
-      queryKey: currentUserQueryKey,
-      queryFn: getCurrentUser,
-    });
-    if (user) {
-      throw redirect({ to: "/" });
-    }
-  },
+  beforeLoad: ({ context }) => redirectIfAuthenticated(context),
   component: SignupPage,
 });
 

@@ -1,17 +1,17 @@
 import { type SignupInput, signupSchema } from "@agriwatch/shared";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import { toServerErrorMessage } from "@/shared/api/api-error.ts";
 import { Alert, AlertDescription } from "@/shared/ui/alert.tsx";
 import { Button } from "@/shared/ui/button.tsx";
 import { FormError, FormField } from "@/shared/ui/field.tsx";
 import { Input } from "@/shared/ui/input.tsx";
 import { Label } from "@/shared/ui/label.tsx";
-import { AuthApiError } from "../api/auth.api.ts";
 import { useSignupMutation } from "../hooks/use-signup-mutation.ts";
 
-type SignupFormProps = {
+type SignupFormProps = Readonly<{
   onSuccess?: () => void;
-};
+}>;
 
 export function SignupForm({ onSuccess }: SignupFormProps) {
   const signupMutation = useSignupMutation();
@@ -31,12 +31,7 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
     });
   });
 
-  const serverError =
-    signupMutation.error instanceof AuthApiError
-      ? signupMutation.error.message
-      : signupMutation.error
-        ? "Unexpected error. Please try again."
-        : undefined;
+  const serverError = toServerErrorMessage(signupMutation.error);
 
   return (
     <form onSubmit={submit} className="flex flex-col gap-5" noValidate>

@@ -4,33 +4,9 @@ import {
   type UserPublic,
   userPublicSchema,
 } from "@agriwatch/shared";
+import { readApiError } from "@/shared/api/api-error.ts";
 
 const API_BASE = "/api/auth";
-
-export class AuthApiError extends Error {
-  readonly status: number;
-
-  constructor(status: number, message: string) {
-    super(message);
-    this.name = "AuthApiError";
-    this.status = status;
-  }
-}
-
-/**
- * Read the server's JSON error message (Fastify shape: `{ error, message, statusCode }`)
- * and surface it via AuthApiError. Falls back to a generic message if parsing fails.
- */
-async function readError(res: Response, fallback: string): Promise<AuthApiError> {
-  try {
-    const data = (await res.json()) as { error?: unknown; message?: unknown };
-    if (typeof data.error === "string") return new AuthApiError(res.status, data.error);
-    if (typeof data.message === "string") return new AuthApiError(res.status, data.message);
-  } catch {
-    // ignore parse failure — fall through to the fallback
-  }
-  return new AuthApiError(res.status, fallback);
-}
 
 const JSON_HEADERS = { "Content-Type": "application/json" };
 
@@ -41,7 +17,7 @@ export async function signup(input: SignupInput): Promise<UserPublic> {
     credentials: "include",
     body: JSON.stringify(input),
   });
-  if (!res.ok) throw await readError(res, "Signup failed.");
+  if (!res.ok) throw await readApiError(res, "Signup failed.");
   return userPublicSchema.parse(await res.json());
 }
 
@@ -52,7 +28,7 @@ export async function login(input: LoginInput): Promise<UserPublic> {
     credentials: "include",
     body: JSON.stringify(input),
   });
-  if (!res.ok) throw await readError(res, "Login failed.");
+  if (!res.ok) throw await readApiError(res, "Login failed.");
   return userPublicSchema.parse(await res.json());
 }
 
@@ -61,16 +37,16 @@ export async function logout(): Promise<void> {
     method: "POST",
     credentials: "include",
   });
-  if (!res.ok) throw await readError(res, "Logout failed.");
+  if (!res.ok) throw await readApiError(res, "Logout failed.");
 }
 
 /**
  * Returns the current user, or `null` if the session is missing/expired (401).
- * Other errors (network, 5xx) bubble up as AuthApiError.
+ * Other errors (network, 5xx) bubble up as ApiError.
  */
 export async function getCurrentUser(): Promise<UserPublic | null> {
   const res = await fetch(`${API_BASE}/me`, { credentials: "include" });
   if (res.status === 401) return null;
-  if (!res.ok) throw await readError(res, "Failed to load current user.");
+  if (!res.ok) throw await readApiError(res, "Failed to load current user.");
   return userPublicSchema.parse(await res.json());
 }
