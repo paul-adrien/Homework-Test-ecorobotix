@@ -2,4 +2,4 @@
 // Consumed by both the backend (input validation, OpenAPI generation) and the
 // frontend (form validation, response parsing).
 
-export {};
+export * from "./auth.schema.ts";

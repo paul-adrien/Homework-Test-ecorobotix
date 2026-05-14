@@ -1,5 +1,7 @@
+import { createHash } from "node:crypto";
 import fastifyCookie from "@fastify/cookie";
 import fastifyCors from "@fastify/cors";
+import fastifySecureSession from "@fastify/secure-session";
 import fastifySwagger from "@fastify/swagger";
 import scalarApiReference from "@scalar/fastify-api-reference";
 import Fastify from "fastify";
@@ -10,6 +12,7 @@ import {
   type ZodTypeProvider,
 } from "fastify-type-provider-zod";
 import { env } from "./env.ts";
+import { authRoutes } from "./routes/auth.ts";
 
 async function buildServer() {
   const app = Fastify({
@@ -30,8 +33,20 @@ async function buildServer() {
     credentials: true,
   });
 
-  await app.register(fastifyCookie, {
-    secret: env.SESSION_SECRET,
+  await app.register(fastifyCookie);
+
+  await app.register(fastifySecureSession, {
+    // Derive a 32-byte symmetric key deterministically from SESSION_SECRET so the secret
+    // can be rotated by editing one env var. In production this should be a high-entropy
+    // value (32+ chars) loaded from a secret manager.
+    key: createHash("sha256").update(env.SESSION_SECRET).digest(),
+    cookie: {
+      path: "/",
+      httpOnly: true,
+      secure: env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+    },
   });
 
   await app.register(fastifySwagger, {
@@ -42,6 +57,12 @@ async function buildServer() {
         version: "0.1.0",
       },
       servers: [{ url: "/" }],
+      tags: [
+        { name: "auth", description: "Authentication endpoints" },
+        { name: "parcels", description: "Parcel CRUD" },
+        { name: "weather", description: "Weather data from configured providers" },
+        { name: "preferences", description: "User preferences" },
+      ],
     },
     transform: jsonSchemaTransform,
   });
@@ -52,19 +73,17 @@ async function buildServer() {
 
   app.get("/health", () => ({ status: "ok" }));
 
+  await app.register(authRoutes, { prefix: "/api" });
+
   return app;
 }
 
-async function main() {
-  const app = await buildServer();
-  try {
-    await app.listen({ port: env.API_PORT, host: "0.0.0.0" });
-    app.log.info(`AgriWatch API listening on http://localhost:${env.API_PORT}`);
-    app.log.info(`API docs available at http://localhost:${env.API_PORT}/docs`);
-  } catch (err) {
-    app.log.error(err);
-    process.exit(1);
-  }
+const app = await buildServer();
+try {
+  await app.listen({ port: env.API_PORT, host: "0.0.0.0" });
+  app.log.info(`AgriWatch API listening on http://localhost:${env.API_PORT}`);
+  app.log.info(`API docs available at http://localhost:${env.API_PORT}/docs`);
+} catch (err) {
+  app.log.error(err);
+  process.exit(1);
 }
-
-main();
