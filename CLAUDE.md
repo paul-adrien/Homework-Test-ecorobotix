@@ -137,11 +137,17 @@ homework_ecorobotix/
 │   │   │   └── auth/                   # `auth` bounded context
 │   │   │       ├── domain/             # Pure business types, value objects, errors
 │   │   │       │   ├── user.ts
-│   │   │       │   └── auth.errors.ts
+│   │   │       │   ├── auth.errors.ts
+│   │   │       │   └── tests/          # Unit tests for the domain layer
+│   │   │       │       └── user.test.ts
 │   │   │       ├── application/        # Use cases (orchestrate domain + ports)
 │   │   │       │   ├── signup.usecase.ts
 │   │   │       │   ├── login.usecase.ts
-│   │   │       │   └── get-current-user.usecase.ts
+│   │   │       │   ├── get-current-user.usecase.ts
+│   │   │       │   └── tests/          # Unit tests for the use cases (use the in-memory fakes)
+│   │   │       │       ├── signup.usecase.test.ts
+│   │   │       │       ├── login.usecase.test.ts
+│   │   │       │       └── get-current-user.usecase.test.ts
 │   │   │       ├── ports/              # Interfaces — what infrastructure must provide
 │   │   │       │   ├── user.repository.ts
 │   │   │       │   └── password-hasher.ts
@@ -151,7 +157,11 @@ homework_ecorobotix/
 │   │   │       │   └── session-store.fastify.ts
 │   │   │       ├── interface/          # HTTP adapter (inbound)
 │   │   │       │   ├── auth.routes.ts
-│   │   │       │   └── require-auth.middleware.ts
+│   │   │       │   ├── require-auth.middleware.ts
+│   │   │       │   └── tests/          # HTTP integration tests via app.inject()
+│   │   │       │       ├── test-app.ts          # in-memory Fastify boot with mocked use cases
+│   │   │       │       └── auth.routes.test.ts
+│   │   │       ├── test-fakes.ts       # Reusable test doubles (in-memory repo, fake hasher)
 │   │   │       └── auth.module.ts      # Composition root: wires adapters → use cases → routes
 │   │   ├── shared/                     # Cross-cutting infrastructure
 │   │   │   └── db/
@@ -190,6 +200,7 @@ homework_ecorobotix/
 - The **composition root** (`<module>.module.ts`) is the only place that instantiates infrastructure adapters and injects them into use cases.
 - HTTP handlers (`interface/`) are **thin translators**: parse request, call use case, map result or domain error to HTTP. No business logic.
 - Cross-cutting concerns (the Prisma client, error mappers) go under `src/shared/`, never inside a module.
+- **Tests** live in a `tests/` subfolder next to their source (`domain/tests/`, `application/tests/`, `interface/tests/`). Shared test doubles (in-memory repositories, fake hashers) sit at the module root in `test-fakes.ts`.
 
 **Important**: `sujet.md` and `points_restants.md` are internal working notes (French) and must be added to `.gitignore`. Do not commit them.
 
