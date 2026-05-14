@@ -13,6 +13,7 @@ import {
 } from "fastify-type-provider-zod";
 import { env } from "./config/env.ts";
 import { registerAuthModule } from "./modules/auth/auth.module.ts";
+import { registerSitesModule } from "./modules/sites/sites.module.ts";
 import { prisma } from "./shared/db/prisma.client.ts";
 
 async function buildServer() {
@@ -75,6 +76,7 @@ async function buildServer() {
   app.get("/health", () => ({ status: "ok" }));
 
   await registerAuthModule(app, { prisma });
+  await registerSitesModule(app, { prisma });
 
   return app;
 }

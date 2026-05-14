@@ -3,3 +3,4 @@
 // frontend (form validation, response parsing).
 
 export * from "./auth.schema.ts";
+export * from "./site.schema.ts";

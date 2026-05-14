@@ -35,7 +35,8 @@ model Site {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user                 User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  preferencesAsDefault UserPreferences[]
 
   @@unique([userId, label])
   @@index([userId])
@@ -45,9 +46,12 @@ model UserPreferences {
   id                String   @id @default(cuid())
   userId            String   @unique
   temperatureUnit   String   @default("celsius") // "celsius" | "fahrenheit"
-  defaultSiteId     String? // nullable, no auto-fallback if the referenced site is deleted
+  defaultSiteId     String? // nullable; if the referenced site is deleted, this is set to null automatically (no auto-fallback to another site)
   preferredProvider String   @default("open-meteo")
   updatedAt         DateTime @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  defaultSite Site? @relation(fields: [defaultSiteId], references: [id], onDelete: SetNull)
+
+  @@index([defaultSiteId])
 }
