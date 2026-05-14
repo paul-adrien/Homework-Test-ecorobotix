@@ -47,7 +47,6 @@ export function LoginForm({ onSuccess }: LoginFormProps) {
           id="login-email"
           type="email"
           autoComplete="email"
-          autoFocus
           aria-invalid={errors.email ? true : undefined}
           aria-describedby={errors.email ? "login-email-error" : undefined}
           {...register("email")}

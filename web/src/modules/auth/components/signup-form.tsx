@@ -47,7 +47,6 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
           id="signup-email"
           type="email"
           autoComplete="email"
-          autoFocus
           aria-invalid={errors.email ? true : undefined}
           aria-describedby={errors.email ? "signup-email-error" : undefined}
           {...register("email")}
