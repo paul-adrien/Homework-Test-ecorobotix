@@ -18,14 +18,14 @@ model User {
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt
 
-  parcels     Parcel[]
+  sites       Site[]
   preferences UserPreferences?
 }
 
-model Parcel {
+model Site {
   id          String   @id @default(cuid())
   userId      String
-  label       String // user-chosen name ("North field — wheat 2026")
+  label       String // user-chosen name ("North field site", "Site 12")
   displayName String? // informational, from geocoding
   latitude    Float
   longitude   Float
@@ -45,7 +45,7 @@ model UserPreferences {
   id                String   @id @default(cuid())
   userId            String   @unique
   temperatureUnit   String   @default("celsius") // "celsius" | "fahrenheit"
-  defaultParcelId   String? // nullable, no auto-fallback if the referenced parcel is deleted
+  defaultSiteId     String? // nullable, no auto-fallback if the referenced site is deleted
   preferredProvider String   @default("open-meteo")
   updatedAt         DateTime @updatedAt
 

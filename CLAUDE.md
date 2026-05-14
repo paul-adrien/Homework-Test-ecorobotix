@@ -8,12 +8,12 @@ This document is the canonical, exhaustive specification of the AgriWatch projec
 
 ## 1. Mission
 
-**AgriWatch** is an internal tool for field agents working with cooperative farms in Western Europe. Agents are responsible for many agricultural parcels (often 10+) and need to make daily decisions on sowing, irrigation, pesticide application, and harvest based on weather conditions.
+**AgriWatch** is an internal tool for field agents working with cooperative farms in Western Europe. Agents are responsible for many agricultural sites (often 10+) and need to make daily decisions on sowing, irrigation, pesticide application, and harvest based on weather conditions.
 
-Today they waste time consulting multiple weather sources (national meteorological services, generic weather apps, regional sites). AgriWatch consolidates everything into a **single multi-parcel dashboard** with current conditions, multi-day forecasts, per-agent preferences, and the ability to **switch between multiple weather providers** to cross-check the data — reflecting the real-world habit of comparing sources before acting on critical decisions.
+Today they waste time consulting multiple weather sources (national meteorological services, generic weather apps, regional sites). AgriWatch consolidates everything into a **single multi-site dashboard** with current conditions, multi-day forecasts, per-agent preferences, and the ability to **switch between multiple weather providers** to cross-check the data — reflecting the real-world habit of comparing sources before acting on critical decisions.
 
 The deliverable is a thoughtful, working prototype that demonstrates:
-- End-to-end functionality of the core flow (auth → search parcel → view forecast → save → set default)
+- End-to-end functionality of the core flow (auth → search site → view forecast → save → set default)
 - Code quality a teammate could maintain
 - Justified technical choices
 - Meaningful tests (not coverage theatre)
@@ -28,7 +28,7 @@ The brief defines 8 user stories. Each is translated below into a concrete, impl
 ### US1. Search for a location and see its current weather conditions
 - **Search input** with two modes:
   - **Text search** with autocomplete via Open-Meteo Geocoding API
-  - **Direct lat/lng input** (two numeric fields) for parcels not matching any geocoder entry. When the user submits coordinates, perform a **reverse geocoding** call (Open-Meteo) to populate `displayName` informatively (best-effort, optional — coordinates remain valid even if reverse geocoding fails).
+  - **Direct lat/lng input** (two numeric fields) for sites not matching any geocoder entry. When the user submits coordinates, perform a **reverse geocoding** call (Open-Meteo) to populate `displayName` informatively (best-effort, optional — coordinates remain valid even if reverse geocoding fails).
 - On result selection, display a **current weather card** with: temperature, precipitation (last hour + probability), wind (speed + direction), humidity, plus `soil moisture` and `UV index` as low-cost agri-specific bonuses.
 - Temperature unit follows the user's preference (Celsius/Fahrenheit). Convert at display time.
 
@@ -39,39 +39,39 @@ The brief defines 8 user stories. Each is translated below into a concrete, impl
 - Series can be turned on/off; multiple series can overlap on the chart.
 - Forecast is fetched from the **currently selected provider** (see Architecture §7.2).
 
-### US3. Save parcels I monitor regularly
-- After viewing current weather for a searched location, an action **"Save as parcel"** is available.
-- A **custom label** is required (prompt: "Name this parcel"). Default suggestion is the geocoded display name; the user typically overrides ("North field — wheat 2026").
+### US3. Save sites I monitor regularly
+- After viewing current weather for a searched location, an action **"Save as site"** is available.
+- A **custom label** is required (prompt: "Name this site"). Default suggestion is the geocoded display name; the user typically overrides ("North field — wheat 2026").
 - The persisted record includes: `label`, `latitude`, `longitude`, `displayName` (from geocoding), optional `countryCode`, `timezone`, `cropType`.
-- Vocabulary: in UI and code, the saved entity is called **`Parcel`** (not "Location"). Reflects agri domain.
+- Vocabulary: in UI and code, the saved entity is called **`Site`** (not "Location"). Reflects agri domain.
 
-### US4. Remove a saved parcel
-- Each parcel card has a **delete action** with a confirmation step (modal or destructive button two-tap).
-- On delete: cascading cleanup if the parcel was the user's default (`defaultParcelId` set to `null` — no automatic fallback to another parcel).
+### US4. Remove a saved site
+- Each site card has a **delete action** with a confirmation step (modal or destructive button two-tap).
+- On delete: cascading cleanup if the site was the user's default (`defaultSiteId` set to `null` — no automatic fallback to another site).
 
 ### US5. Set my preferred temperature unit (Celsius/Fahrenheit) and remember it
 - Stored in `UserPreferences.temperatureUnit`.
 - Settings UI provides a toggle.
 - Applies to all temperature displays across the app (forecast cards, chart Y-axis, current conditions, etc.).
 
-### US6. Set a default parcel that loads automatically when I open the dashboard
-- **One parcel at a time** can be marked as default, indicated by a **heart icon** on the parcel card (filled when default, empty otherwise).
-- Clicking the heart on parcel A while parcel B was default sets A as default and unsets B atomically. Show a **toast confirmation** *"Default parcel updated"* — no modal, friction-free.
-- If the default parcel is deleted, `defaultParcelId` is set to `null`. The user must explicitly set a new default (no automatic fallback).
+### US6. Set a default site that loads automatically when I open the dashboard
+- **One site at a time** can be marked as default, indicated by a **heart icon** on the site card (filled when default, empty otherwise).
+- Clicking the heart on site A while site B was default sets A as default and unsets B atomically. Show a **toast confirmation** *"Default site updated"* — no modal, friction-free.
+- If the default site is deleted, `defaultSiteId` is set to `null`. The user must explicitly set a new default (no automatic fallback).
 - On dashboard load:
-  - If user has 0 parcels: **empty state** with two CTAs: "Search a location" and "Use my current location". The latter uses `navigator.geolocation.getCurrentPosition()` → reverse-geocodes via Open-Meteo → pre-fills the parcel form with `displayName` and coordinates → the user reviews and edits the custom label → saves.
-  - If user has parcels, **all are displayed**. If a default is set, it is highlighted (first position + filled heart).
+  - If user has 0 sites: **empty state** with two CTAs: "Search a location" and "Use my current location". The latter uses `navigator.geolocation.getCurrentPosition()` → reverse-geocodes via Open-Meteo → pre-fills the site form with `displayName` and coordinates → the user reviews and edits the custom label → saves.
+  - If user has sites, **all are displayed**. If a default is set, it is highlighted (first position + filled heart).
 
 ### US7. Access the tool from a phone and a desktop equally well
 - **Mobile-first** Tailwind design, tested at 375px / 768px / 1280px viewports.
 - Tested via **browser DevTools mobile mode** (no separate physical-device setup required for the reviewer).
-- Mobile: bottom-tab navigation (Parcels / Search / Settings).
-- Desktop: left sidebar (parcel list) + main content area with multi-column grids where useful.
+- Mobile: bottom-tab navigation (Sites / Search / Settings).
+- Desktop: left sidebar (site list) + main content area with multi-column grids where useful.
 
-### US8. Preferences and saved parcels tied to my identity, persist across sessions and devices
+### US8. Preferences and saved sites tied to my identity, persist across sessions and devices
 - **Email + password authentication** via Auth.js Credentials provider (bcrypt-hashed passwords).
 - Server-side sessions, secure HTTP-only cookies.
-- Parcels and preferences scoped per `userId` in PostgreSQL.
+- Sites and preferences scoped per `userId` in PostgreSQL.
 - Not stored in localStorage — always server-side, accessible from any device after login.
 
 ---
@@ -106,7 +106,7 @@ The brief defines 8 user stories. Each is translated below into a concrete, impl
 
 The API is organised by **bounded context** (one folder under `modules/` per sub-domain) and each module follows a **DDD-light** layered structure: `domain/` (pure business types and errors), `application/` (use cases that orchestrate domain + ports), `ports/` (interfaces describing what the infrastructure must provide), `infrastructure/` (concrete adapters like Prisma, bcrypt, Fastify session), and `interface/` (HTTP routes — the inbound adapter). A small `<module>.module.ts` file is the composition root that wires the adapters into the use cases and registers the routes.
 
-The frontend mirrors the same organisation: feature folders per bounded context (`auth/`, `parcels/`, `weather/`, `preferences/`) with sub-folders for `api/`, `hooks/`, `components/`, `pages/`.
+The frontend mirrors the same organisation: feature folders per bounded context (`auth/`, `sites/`, `weather/`, `preferences/`) with sub-folders for `api/`, `hooks/`, `components/`, `pages/`.
 
 ```
 homework_ecorobotix/
@@ -119,7 +119,7 @@ homework_ecorobotix/
 │   │   │   │   ├── hooks/              # useCurrentUser, useLogin, useSignup
 │   │   │   │   ├── components/         # LoginForm, SignupForm
 │   │   │   │   └── pages/              # /login, /signup screens
-│   │   │   ├── parcels/                # (Phase 2)
+│   │   │   ├── sites/                # (Phase 2)
 │   │   │   ├── weather/                # (Phase 3)
 │   │   │   └── preferences/            # (Phase 5)
 │   │   ├── shared/
@@ -178,7 +178,7 @@ homework_ecorobotix/
 ├── shared/                             # Shared Zod schemas + types (API contracts)
 │   ├── src/
 │   │   ├── auth.schema.ts
-│   │   ├── parcel.schema.ts            # (Phase 2)
+│   │   ├── site.schema.ts            # (Phase 2)
 │   │   ├── weather.types.ts            # (Phase 3)
 │   │   ├── preferences.schema.ts       # (Phase 5)
 │   │   └── index.ts
@@ -247,25 +247,25 @@ Build the project in this order. Do not skip ahead; each phase relies on the pre
 11. Commit baseline: `chore: scaffold project structure`.
 
 ### Phase 1 — Database + Auth
-1. Define Prisma schema for `User`, `Parcel`, `UserPreferences` (see §8).
+1. Define Prisma schema for `User`, `Site`, `UserPreferences` (see §8).
 2. Run first migration; verify Prisma Client generates.
 3. Implement `api/src/auth/`: register `@fastify/secure-session` plugin, bcrypt password hashing/verification helpers, session typing on the Fastify request.
 4. Implement signup + login endpoints with Zod-validated bodies (schemas in `shared/`).
-5. Seed a demo user (`agent@agriwatch.demo` / `agriwatch`) and one sample parcel.
+5. Seed a demo user (`agent@agriwatch.demo` / `agriwatch`) and one sample site.
 6. Build minimal login + signup UI in `web/`. TanStack Router with auth-protected routes (`beforeLoad` guard).
 7. Test the auth flow end-to-end manually.
 8. Commit: `feat(auth): credentials authentication + protected routes`.
 
-### Phase 2 — Parcel CRUD + Geocoding
-1. Define `parcelCreateSchema`, `parcelUpdateSchema` in `shared/`.
-2. Implement Fastify routes: `POST/GET/PATCH/DELETE /api/parcels` (Zod-validated, scoped to `userId`).
+### Phase 2 — Site CRUD + Geocoding
+1. Define `siteCreateSchema`, `siteUpdateSchema` in `shared/`.
+2. Implement Fastify routes: `POST/GET/PATCH/DELETE /api/sites` (Zod-validated, scoped to `userId`).
 3. Build a thin Open-Meteo geocoding wrapper (no provider abstraction yet — just used for search).
 4. Build search UI in `web/`: text input with autocomplete + lat/lng manual mode.
-5. Build parcel list view with create / edit / delete affordances.
-6. Add the heart toggle for default parcel (US6).
-7. Empty state for users with 0 parcels (Search + Use my location CTAs).
+5. Build site list view with create / edit / delete affordances.
+6. Add the heart toggle for default site (US6).
+7. Empty state for users with 0 sites (Search + Use my location CTAs).
 8. Tests: Zod validation, label uniqueness per user, default toggle atomicity.
-9. Commit: `feat(parcels): CRUD + default management`.
+9. Commit: `feat(sites): CRUD + default management`.
 
 ### Phase 3 — Weather Provider Architecture + P1
 1. Define the `WeatherProvider` interface in `api/src/weather/provider.ts` (see §7.2).
@@ -280,18 +280,18 @@ Build the project in this order. Do not skip ahead; each phase relies on the pre
 10. Commit: `feat(weather): multi-provider abstraction + open-meteo + yr-no`.
 
 ### Phase 4 — Forecast UI + Chart
-1. Build the parcel detail page: current conditions card + forecast chart + provider switcher dropdown.
+1. Build the site detail page: current conditions card + forecast chart + provider switcher dropdown.
 2. Implement the provider switcher (only shows available providers; switching refetches via TanStack Query invalidation).
 3. Build the Recharts multi-series chart: 4 toggleable metrics (temp, precip, wind, humidity), 7-day daily by default, 14-day toggle, drill-down to hourly on day click.
 4. Implement temperature unit conversion at display time (read `UserPreferences.temperatureUnit`).
-5. Build the dashboard view: grid of parcel cards with current snapshot (uses default parcel in highlight position).
-6. Build the Leaflet map view: markers for each saved parcel with label tooltips. Use OpenStreetMap tiles, no API key.
-7. Tests: unit conversion, chart series toggling, dashboard rendering with 0 / 1 / many parcels.
+5. Build the dashboard view: grid of site cards with current snapshot (uses default site in highlight position).
+6. Build the Leaflet map view: markers for each saved site with label tooltips. Use OpenStreetMap tiles, no API key.
+7. Tests: unit conversion, chart series toggling, dashboard rendering with 0 / 1 / many sites.
 8. Commit: `feat(weather): forecast UI, chart, map view, provider switcher`.
 
 ### Phase 5 — Preferences + Settings
 1. Implement `GET /api/me/preferences` and `PATCH /api/me/preferences`.
-2. Build the Settings page in `web/`: temperature unit toggle, default parcel selector, preferred provider selector.
+2. Build the Settings page in `web/`: temperature unit toggle, default site selector, preferred provider selector.
 3. Wire the preferences via TanStack Query mutations with optimistic update.
 4. Tests: preferences persistence, default unit propagation.
 5. Commit: `feat(preferences): user settings`.
@@ -333,10 +333,10 @@ Commit: `docs: README with setup, architecture decisions, future improvements`.
 All API contracts (request bodies, response shapes, query params) live as **Zod schemas in `shared/src/`**. The backend uses them for input validation; the frontend uses them for form validation and response parsing. **Types are inferred** from schemas — never duplicated.
 
 ```ts
-// shared/src/parcel.schema.ts
+// shared/src/site.schema.ts
 import { z } from "zod"
 
-export const parcelCreateSchema = z.object({
+export const siteCreateSchema = z.object({
   label: z.string().min(1).max(80),
   latitude: z.number().min(-90).max(90),
   longitude: z.number().min(-180).max(180),
@@ -344,7 +344,7 @@ export const parcelCreateSchema = z.object({
   cropType: z.string().optional(),
 })
 
-export type ParcelCreate = z.infer<typeof parcelCreateSchema>
+export type SiteCreate = z.infer<typeof siteCreateSchema>
 ```
 
 ### 7.2 WeatherProvider pattern — multi-source abstraction
@@ -416,11 +416,11 @@ model User {
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt
 
-  parcels      Parcel[]
+  sites      Site[]
   preferences  UserPreferences?
 }
 
-model Parcel {
+model Site {
   id          String   @id @default(cuid())
   userId      String
   label       String                // user-chosen ("North field — wheat 2026")
@@ -443,7 +443,7 @@ model UserPreferences {
   id                String   @id @default(cuid())
   userId            String   @unique
   temperatureUnit   String   @default("celsius")        // "celsius" | "fahrenheit"
-  defaultParcelId   String?                              // nullable, no auto-fallback on delete
+  defaultSiteId   String?                              // nullable, no auto-fallback on delete
   preferredProvider String   @default("open-meteo")
   updatedAt         DateTime @updatedAt
 
@@ -453,8 +453,8 @@ model UserPreferences {
 ```
 
 **Constraints**:
-- `Parcel.label` unique per user — an agent cannot have two parcels with the same custom name
-- `UserPreferences.defaultParcelId` is nullable; when the referenced parcel is deleted, this field is set to `null` (no auto-fallback)
+- `Site.label` unique per user — an agent cannot have two sites with the same custom name
+- `UserPreferences.defaultSiteId` is nullable; when the referenced site is deleted, this field is set to `null` (no auto-fallback)
 - Cascade deletes propagate from `User`
 
 ---
@@ -500,9 +500,9 @@ Load via Google Fonts in `index.html` or via Fontsource. Set `font-feature-setti
 - Desktop: left sidebar + main content area
 
 ### Key UI patterns
-- **Parcel card**: icon + label + current temp/precip snapshot + heart toggle + delete affordance
-- **Metric strip**: horizontal scrollable bar of metric chips at the top of parcel detail (icon + label + value)
-- **Hero header**: dark-navy band with title + back button + provider switcher dropdown on parcel detail
+- **Site card**: icon + label + current temp/precip snapshot + heart toggle + delete affordance
+- **Metric strip**: horizontal scrollable bar of metric chips at the top of site detail (icon + label + value)
+- **Hero header**: dark-navy band with title + back button + provider switcher dropdown on site detail
 - **Empty state**: centered illustration / icon + two CTAs (Search / Use my location)
 
 ### Light mode only
@@ -533,7 +533,7 @@ No dark mode in MVP. Agents work in daylight; light theme is the right default. 
 - Functions, variables: `camelCase`
 - Types, interfaces: `PascalCase`
 - Constants: `SCREAMING_SNAKE_CASE` only for compile-time constants
-- Zod schemas: suffix with `Schema` (e.g. `parcelCreateSchema`)
+- Zod schemas: suffix with `Schema` (e.g. `siteCreateSchema`)
 - Inferred types from Zod: re-export with the plain noun (no `I` prefix)
 
 ### File organization
@@ -554,11 +554,11 @@ No dark mode in MVP. Agents work in daylight; light theme is the right default. 
 
 ### Commits — Conventional Commits (enforced by commitlint)
 ```
-feat: add parcel CRUD
+feat: add site CRUD
 feat(weather): add Yr.no provider
-fix: prevent duplicate parcel labels per user
+fix: prevent duplicate site labels per user
 refactor(api): extract weather adapter factory
-test(parcel): cover label validation
+test(site): cover label validation
 docs: add README setup instructions
 chore: bump dependencies
 style: format with biome
@@ -579,23 +579,23 @@ perf(cache): tune LRU max entries
 Priority targets:
 - Temperature conversion (C ↔ F) — covers user preference application
 - Weather data normalization (per-provider adapters mapping raw → unified types)
-- Zod schema validation (parcel creation, auth, preferences)
+- Zod schema validation (site creation, auth, preferences)
 - Cache TTL behavior (insertion, expiration, key construction)
 - Date/timezone formatting helpers
 
 ### React Testing Library
 Priority components:
-- `ParcelCard` — default/non-default states, heart toggle, delete
+- `SiteCard` — default/non-default states, heart toggle, delete
 - `ForecastChart` — series toggling, day range switching
 - `ProviderSwitcher` — only renders available providers, switches trigger refetch
 - `SearchInput` — geocoding autocomplete, lat/lng manual mode
 - `EmptyState` — first-login flow, geolocation CTA
 
 ### Playwright (E2E happy paths — 2 scenarios)
-1. **Signup → add parcel → forecast → set default**
-   Signup with email + password → auto-login → add a parcel via geocoding search → view its 7-day forecast → toggle the heart to set as default.
+1. **Signup → add site → forecast → set default**
+   Signup with email + password → auto-login → add a site via geocoding search → view its 7-day forecast → toggle the heart to set as default.
 2. **Existing login → switch weather provider**
-   Log in as the seeded user → open a parcel detail → switch from `open-meteo` to `yr-no` → assert that the displayed values change.
+   Log in as the seeded user → open a site detail → switch from `open-meteo` to `yr-no` → assert that the displayed values change.
 
 ### What we deliberately do NOT test
 - Trivial getters/setters
@@ -631,7 +631,7 @@ These are explicit decisions. Do not introduce them.
 |---|---|---|
 | D1 | Email + password via `@fastify/secure-session` + bcrypt (originally planned with Auth.js, pivoted) | Ecorobotix uses Infomaniak/kSuite, not Google Workspace → OAuth Google would not work for their emails; passwordless adds setup friction; credentials = zero friction for reviewer. Auth.js is optimized for fullstack frameworks (Next.js); on a separate Fastify backend, `@fastify/secure-session` is the idiomatic native choice with the same security guarantees and ~10 lines of setup vs ~100 lines of glue code. |
 | D2 | PostgreSQL in Docker Compose, no Supabase | 3 tables, no realtime/storage needs; Supabase oversizes the stack and complicates "clone + run" |
-| D3 | `Parcel` model (not "Location") + dual search (geocoding + lat/lng) + Leaflet map view | Aligns with agri domain vocabulary; supports remote parcels not in any geocoder; map view honors "track 10+ sites quickly" |
+| D3 | `Site` model (not "Location") + dual search (geocoding + lat/lng) + Leaflet map view | Aligns with agri domain vocabulary; supports remote sites not in any geocoder; map view honors "track 10+ sites quickly" |
 | D4 | 7-day daily forecast (extensible to 14), hourly drill-down, 4 toggleable metrics | 7d is the reliable horizon; hourly drill-down for same-day decisions; 4 metrics critical for agri (not just temperature) |
 | D5 | Alerts/thresholds out of MVP scope, listed first in README improvements | 4-6h to implement properly; high product-thinking signal in README without dev cost |
 | D6 | Multi-source weather via `WeatherProvider` interface, P1 = Open-Meteo + Yr.no, P2 = +Bright Sky/OpenWeatherMap/WeatherAPI | Honors "multiple sources" intent; switch (not consensus) keeps UX transparent; phased to manage time risk |
@@ -640,7 +640,7 @@ These are explicit decisions. Do not introduce them.
 | D9 | Tailwind v4 + shadcn/ui + Inter + brand palette extracted from Ecorobotix logo SVG | Customizable (no lock-in); colors authentic and defensible |
 | D10 | Light monorepo (3 root dirs: `web/`, `api/`, `shared/`) with `file:` deps, no pnpm workspaces. OpenAPI auto-gen on API. | Shares Zod schemas without workspace complexity; backend remains reusable by future clients |
 | D11 | Local-first deployment via Docker Compose, no wifi-mobile binding, Render cloud as stretch | Reviewer uses DevTools mobile mode; cloud only if time permits |
-| D12 | Single default parcel, heart icon; no automatic fallback if the default is deleted | Respects user agency (US #6 explicit); singular ("a default") rules out multi-favorites in MVP |
+| D12 | Single default site, heart icon; no automatic fallback if the default is deleted | Respects user agency (US #6 explicit); singular ("a default") rules out multi-favorites in MVP |
 | D13 | Vitest + RTL + Playwright (2 E2E); TS strict (minus `exactOptionalPropertyTypes`); Biome; Husky + lint-staged + commitlint; commits direct to `main` | Meaningful tests; quality enforced mechanically; solo workflow keeps velocity high |
 
 ---
@@ -650,7 +650,7 @@ These are explicit decisions. Do not introduce them.
 In rough priority order:
 
 - **Threshold alerts** (rain > 15mm/24h, wind > 20km/h, humidity > 90% for 6h → mildew risk, overnight frost). Highest-value addition for agri context.
-- **Polygon parcels** (draw on satellite map, centroid + area). Currently parcels are single GPS points.
+- **Polygon sites** (draw on satellite map, centroid + area). Currently sites are single GPS points.
 - **Weather provider phase 2** (Bright Sky, OpenWeatherMap, WeatherAPI) — architecture ready, adapters pending.
 - **HTTP-aware caching** (respect `Cache-Control`, `If-Modified-Since` revalidation for Yr.no).
 - **Redis** for multi-instance backend (currently in-memory LRU).
@@ -677,7 +677,7 @@ In rough priority order:
 | `pnpm format` | Biome format --write on the whole repo |
 | `pnpm typecheck` | `tsc --noEmit` in each workspace |
 | `pnpm --filter api db:migrate` | Apply Prisma migrations |
-| `pnpm --filter api db:seed` | Seed demo user + sample parcel |
+| `pnpm --filter api db:seed` | Seed demo user + sample site |
 | `pnpm --filter api db:studio` | Open Prisma Studio (DB GUI) |
 | `pnpm --filter api db:reset` | Wipe + remigrate + reseed (dev only) |
 
@@ -705,7 +705,7 @@ In rough priority order:
 **Run a single test file**
 ```bash
 pnpm --filter api test src/weather/open-meteo.test.ts
-pnpm --filter web test src/features/parcels/ParcelCard.test.tsx
+pnpm --filter web test src/features/sites/SiteCard.test.tsx
 ```
 
 ---

@@ -23,18 +23,18 @@ async function main() {
     },
   });
 
-  // Sample parcel: Yverdon-les-Bains region (Ecorobotix HQ in Vaud, Switzerland)
-  await prisma.parcel.upsert({
+  // Sample site: Yverdon-les-Bains region (Ecorobotix HQ in Vaud, Switzerland)
+  await prisma.site.upsert({
     where: {
       userId_label: {
         userId: user.id,
-        label: "Demo parcel — Yverdon",
+        label: "Demo site — Yverdon",
       },
     },
     update: {},
     create: {
       userId: user.id,
-      label: "Demo parcel — Yverdon",
+      label: "Demo site — Yverdon",
       displayName: "Yverdon-les-Bains, Vaud, Switzerland",
       latitude: 46.7785,
       longitude: 6.6411,
