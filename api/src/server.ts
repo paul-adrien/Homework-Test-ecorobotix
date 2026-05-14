@@ -13,6 +13,7 @@ import {
 } from "fastify-type-provider-zod";
 import { env } from "./config/env.ts";
 import { registerAuthModule } from "./modules/auth/auth.module.ts";
+import { registerGeocodingModule } from "./modules/geocoding/geocoding.module.ts";
 import { registerSitesModule } from "./modules/sites/sites.module.ts";
 import { prisma } from "./shared/db/prisma.client.ts";
 
@@ -55,13 +56,14 @@ async function buildServer() {
     openapi: {
       info: {
         title: "AgriWatch API",
-        description: "Weather monitoring API for field agents managing multiple parcels.",
+        description: "Weather monitoring API for field agents managing multiple sites.",
         version: "0.1.0",
       },
       servers: [{ url: "/" }],
       tags: [
         { name: "auth", description: "Authentication endpoints" },
-        { name: "parcels", description: "Parcel CRUD" },
+        { name: "sites", description: "Site CRUD" },
+        { name: "geocoding", description: "Forward / reverse geocoding" },
         { name: "weather", description: "Weather data from configured providers" },
         { name: "preferences", description: "User preferences" },
       ],
@@ -77,6 +79,7 @@ async function buildServer() {
 
   await registerAuthModule(app, { prisma });
   await registerSitesModule(app, { prisma });
+  await registerGeocodingModule(app);
 
   return app;
 }

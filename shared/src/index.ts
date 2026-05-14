@@ -3,4 +3,5 @@
 // frontend (form validation, response parsing).
 
 export * from "./auth.schema.ts";
+export * from "./geocoding.schema.ts";
 export * from "./site.schema.ts";
