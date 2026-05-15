@@ -1,7 +1,8 @@
 import type { FastifyInstance } from "fastify";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { makeSessionCookieFor } from "../../../../shared/test/test-app.ts";
 import { SiteLabelAlreadyTaken, SiteNotFound } from "../../domain/site.errors.ts";
-import { buildTestApp, makeSessionCookieFor } from "./test-app.ts";
+import { buildTestApp } from "./test-app.ts";
 
 describe("sites HTTP routes", () => {
   let app: FastifyInstance;

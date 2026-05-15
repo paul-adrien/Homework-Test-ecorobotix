@@ -15,6 +15,7 @@ import { env } from "./config/env.ts";
 import { registerAuthModule } from "./modules/auth/auth.module.ts";
 import { registerGeocodingModule } from "./modules/geocoding/geocoding.module.ts";
 import { registerSitesModule } from "./modules/sites/sites.module.ts";
+import { registerWeatherModule } from "./modules/weather/weather.module.ts";
 import { prisma } from "./shared/db/prisma.client.ts";
 
 async function buildServer() {
@@ -80,6 +81,7 @@ async function buildServer() {
   await registerAuthModule(app, { prisma });
   await registerSitesModule(app, { prisma });
   await registerGeocodingModule(app);
+  await registerWeatherModule(app, { prisma });
 
   return app;
 }

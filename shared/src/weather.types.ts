@@ -95,15 +95,20 @@ const coordinatesShape = {
   provider: weatherProviderIdSchema.optional(),
 };
 
-export const currentWeatherQuerySchema = z.object(coordinatesShape);
-export type CurrentWeatherQuery = z.infer<typeof currentWeatherQuerySchema>;
-
-export const dailyForecastQuerySchema = z.object({
+/**
+ * Query for `GET /api/weather` — the bundled dashboard endpoint that returns
+ * current conditions plus a multi-day daily forecast in one round trip.
+ */
+export const weatherQuerySchema = z.object({
   ...coordinatesShape,
   days: z.coerce.number().int().min(1).max(14).default(7),
 });
-export type DailyForecastQuery = z.infer<typeof dailyForecastQuerySchema>;
+export type WeatherQuery = z.infer<typeof weatherQuerySchema>;
 
+/**
+ * Query for `GET /api/weather/hourly` — the on-demand drill-down for the
+ * hourly forecast of a specific date.
+ */
 export const hourlyForecastQuerySchema = z.object({
   ...coordinatesShape,
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),

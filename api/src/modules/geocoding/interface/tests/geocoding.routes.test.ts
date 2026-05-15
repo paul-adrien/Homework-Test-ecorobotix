@@ -1,8 +1,9 @@
 import type { GeocodingResult } from "@agriwatch/shared";
 import type { FastifyInstance } from "fastify";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { makeSessionCookieFor } from "../../../../shared/test/test-app.ts";
 import type { GeocodingProvider } from "../../ports/geocoding.provider.ts";
-import { buildTestApp, makeSessionCookieFor } from "./test-app.ts";
+import { buildTestApp } from "./test-app.ts";
 
 const sampleResult: GeocodingResult = {
   name: "Yverdon-les-Bains",
