@@ -8,6 +8,7 @@ import type { WeatherProviderRegistry } from "./application/resolve-provider.ts"
 import { createCachedProvider } from "./infrastructure/cached-provider.ts";
 import { createOpenMeteoProvider } from "./infrastructure/open-meteo.provider.ts";
 import { createPrismaUserPreferencesReader } from "./infrastructure/user-preferences-reader.prisma.ts";
+import { createYrNoProvider } from "./infrastructure/yr-no.provider.ts";
 import { createWeatherRoutes } from "./interface/weather.routes.ts";
 import type { WeatherProvider } from "./ports/weather-provider.ts";
 
@@ -26,7 +27,13 @@ export async function registerWeatherModule(
   const userPreferencesReader = createPrismaUserPreferencesReader(deps.prisma);
 
   const registry: WeatherProviderRegistry = new Map<WeatherProviderId, WeatherProvider>([
+    // Open-Meteo has no cache contract of its own, so we layer the generic
+    // LRU+TTL decorator on top.
     ["open-meteo", createCachedProvider(createOpenMeteoProvider())],
+    // Yr.no manages its own HTTP-aware cache (If-Modified-Since revalidation
+    // per Met.no's TOS) — wrapping it with the generic decorator would defeat
+    // that contract.
+    ["yr-no", createYrNoProvider()],
   ]);
 
   const getCurrentAndDailyUseCase = createGetCurrentAndDailyUseCase({
