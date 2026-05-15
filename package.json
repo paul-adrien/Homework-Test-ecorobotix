@@ -18,6 +18,7 @@
     "lint": "biome check .",
     "format": "biome format --write .",
     "typecheck": "pnpm -C shared typecheck && pnpm -C api typecheck && pnpm -C web typecheck",
+    "verify": "pnpm typecheck && pnpm lint && pnpm test",
     "prepare": "husky"
   },
   "devDependencies": {
