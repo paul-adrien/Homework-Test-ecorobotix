@@ -2,18 +2,25 @@ import { useNavigate } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { useCurrentUser } from "@/modules/auth/hooks/use-current-user.ts";
 import { useLogoutMutation } from "@/modules/auth/hooks/use-logout-mutation.ts";
+import { AddSiteButton } from "@/modules/sites/components/add-site-button.tsx";
 import { Button } from "@/shared/ui/button.tsx";
 
 type DashboardLayoutProps = Readonly<{
   children: ReactNode;
+  /**
+   * Hide the "+ Add site" button in the header. Used by the empty state where
+   * adding a site is the primary CTA (we don't want two buttons that do the
+   * same thing on the same screen).
+   */
+  hideAddSite?: boolean;
 }>;
 
 /**
- * Shared shell for every dashboard view: brand header on top (AgriWatch +
- * current user identity + sign-out), a main content area below. Pages
+ * Shared shell for every dashboard view: brand header (AgriWatch + add-site
+ * button + identity + sign-out) on top, a main content area below. Pages
  * compose around it via `children` instead of duplicating the header.
  */
-export function DashboardLayout({ children }: DashboardLayoutProps) {
+export function DashboardLayout({ children, hideAddSite }: DashboardLayoutProps) {
   const { data: user } = useCurrentUser();
   const logoutMutation = useLogoutMutation();
   const navigate = useNavigate();
@@ -21,10 +28,11 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   return (
     <div className="flex min-h-dvh flex-col bg-[var(--color-surface-alt)]">
       <header className="border-[var(--color-border-subtle)] border-b bg-[var(--color-dark-navy)] px-6 py-4 text-white">
-        <div className="mx-auto flex max-w-5xl items-center justify-between">
+        <div className="mx-auto flex max-w-7xl items-center justify-between">
           <h1 className="font-semibold text-xl tracking-tight">AgriWatch</h1>
-          <div className="flex items-center gap-4 text-sm">
-            {user ? <span className="text-white/80">{user.email}</span> : null}
+          <div className="flex items-center gap-3 text-sm">
+            {hideAddSite ? null : <AddSiteButton size="sm" />}
+            {user ? <span className="hidden text-white/80 sm:inline">{user.email}</span> : null}
             <Button
               variant="ghost"
               size="sm"
@@ -42,7 +50,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-5xl flex-1 p-6">{children}</main>
+      <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col p-4 sm:p-6">{children}</main>
     </div>
   );
 }
