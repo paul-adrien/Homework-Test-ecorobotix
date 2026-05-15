@@ -63,6 +63,19 @@ export type HourlyForecast = z.infer<typeof hourlyForecastSchema>;
 export const hourlyForecastListSchema = z.array(hourlyForecastSchema);
 
 /**
+ * Bundle returned by `GET /api/weather` — the primary endpoint consumed by
+ * the dashboard view. Bundles current conditions with the multi-day daily
+ * forecast in a single payload so the frontend only makes one request per
+ * site (and one upstream API call per cache miss). Hourly drill-down lives
+ * on a separate endpoint because it's only fetched on demand.
+ */
+export const currentAndDailySchema = z.object({
+  current: currentWeatherSchema,
+  daily: dailyForecastListSchema,
+});
+export type CurrentAndDaily = z.infer<typeof currentAndDailySchema>;
+
+/**
  * Public-facing description of a registered provider. Returned by the
  * `GET /api/weather/providers` endpoint so the frontend switcher can show
  * only providers that are actually available (keyed providers whose env var

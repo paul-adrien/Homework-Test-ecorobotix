@@ -4,9 +4,9 @@ import type { WeatherProvider } from "../ports/weather-provider.ts";
 
 const BASE_URL = "https://api.open-meteo.com/v1/forecast";
 
-// Variables exposed in the `current` block; precipitation_probability, UV index
-// and soil moisture are NOT in `current` so we fetch them via the matching
-// hourly index instead.
+// Variables exposed in the `current` block. precipitation_probability, UV
+// index and soil moisture are NOT in `current` so we fetch them via the
+// matching hourly index instead.
 const CURRENT_VARIABLES = [
   "temperature_2m",
   "apparent_temperature",
@@ -17,12 +17,13 @@ const CURRENT_VARIABLES = [
   "weather_code",
 ].join(",");
 
-// Hourly variables we need at the current hour (alongside the `current` block)
-// plus the ones used to fill `getHourlyForecast`.
+// Hourly variables piggy-backed on the bundle request so we can fill the
+// fields that the `current` block doesn't expose.
 const HOURLY_FOR_CURRENT = ["precipitation_probability", "soil_moisture_0_to_1cm", "uv_index"].join(
   ",",
 );
 
+// Hourly variables exposed by `getHourly` (drill-down for a specific day).
 const HOURLY_VARIABLES = [
   "temperature_2m",
   "precipitation",
@@ -86,6 +87,10 @@ type OpenMeteoResponse = {
  * Concrete `WeatherProvider` backed by Open-Meteo's free forecast API
  * (https://open-meteo.com). No API key required, generous rate limits.
  *
+ * Both methods make exactly one HTTP call upstream — Open-Meteo accepts
+ * `current=...&daily=...&hourly=...` in a single request, so the dashboard
+ * view comes back in one round trip and stays internally consistent.
+ *
  * `fetch` is injected as a dependency so the mapping can be tested in
  * isolation without going over the network; production wiring leaves it
  * undefined and falls back to the global `fetch`.
@@ -119,32 +124,24 @@ export function createOpenMeteoProvider(deps: { fetch?: typeof fetch } = {}): We
     requiresApiKey: false,
     isAvailable: () => true,
 
-    async getCurrent(latitude, longitude) {
+    async getCurrentAndDaily(latitude, longitude, days) {
       const params = new URLSearchParams({
         latitude: String(latitude),
         longitude: String(longitude),
         current: CURRENT_VARIABLES,
         hourly: HOURLY_FOR_CURRENT,
-        timezone: "UTC",
-        forecast_days: "1",
-      });
-      const data = await getJson(params);
-      return mapCurrent(data);
-    },
-
-    async getDailyForecast(latitude, longitude, days) {
-      const params = new URLSearchParams({
-        latitude: String(latitude),
-        longitude: String(longitude),
         daily: DAILY_VARIABLES,
         timezone: "UTC",
         forecast_days: String(days),
       });
       const data = await getJson(params);
-      return mapDaily(data);
+      return {
+        current: mapCurrent(data),
+        daily: mapDaily(data),
+      };
     },
 
-    async getHourlyForecast(latitude, longitude, isoDate) {
+    async getHourly(latitude, longitude, isoDate) {
       const params = new URLSearchParams({
         latitude: String(latitude),
         longitude: String(longitude),

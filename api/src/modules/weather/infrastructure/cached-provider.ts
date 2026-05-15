@@ -1,27 +1,25 @@
-import type { CurrentWeather, DailyForecast, HourlyForecast } from "@agriwatch/shared";
+import type { CurrentAndDaily, HourlyForecast } from "@agriwatch/shared";
 import { LRUCache } from "lru-cache";
 import type { WeatherProvider } from "../ports/weather-provider.ts";
 
 /**
- * Cache TTLs in milliseconds, tuned per data type. Defaults track the project
- * bible:
- *  - `current` (10 min) — observations refresh roughly hourly upstream; 10
- *    minutes is short enough that an agent never sees state more than a
- *    coffee break old, long enough to absorb dashboard refreshes.
- *  - `daily` (30 min) — daily forecasts barely move within the day; 30 min
- *    keeps API load low.
- *  - `hourly` (15 min) — hourly forecasts shift more often as upstream models
- *    update.
+ * Cache TTLs in milliseconds, tuned per access pattern. Defaults:
+ *  - `currentAndDaily` (10 min) — the bundle is gated by the freshness of
+ *    its `current` half (Open-Meteo refreshes current ~hourly upstream;
+ *    10 min keeps the dashboard close to real time without thrashing the
+ *    upstream). The `daily` part doesn't need to refresh that often, but
+ *    bundling forces the shorter TTL — the trade-off is acceptable and
+ *    keeps the snapshot internally consistent.
+ *  - `hourly` (15 min) — hourly forecasts shift more often as upstream
+ *    models update; 15 min absorbs dashboard drill-downs without staleness.
  */
 export type ProviderCacheTtls = Readonly<{
-  currentMs: number;
-  dailyMs: number;
+  currentAndDailyMs: number;
   hourlyMs: number;
 }>;
 
 export const DEFAULT_PROVIDER_CACHE_TTLS: ProviderCacheTtls = {
-  currentMs: 10 * 60 * 1000,
-  dailyMs: 30 * 60 * 1000,
+  currentAndDailyMs: 10 * 60 * 1000,
   hourlyMs: 15 * 60 * 1000,
 };
 
@@ -30,8 +28,8 @@ const DEFAULT_MAX_ENTRIES_PER_BUCKET = 500;
 /**
  * Decorates a `WeatherProvider` with per-method LRU caches. The cached
  * provider exposes the same interface, so use cases and routes never see the
- * cache. Each method has its own LRU+TTL bucket because TTLs differ by data
- * type and we want misses on one endpoint to not evict entries from another.
+ * cache. Each method has its own LRU+TTL bucket because TTLs differ and we
+ * want misses on one endpoint to not evict entries from another.
  *
  * Coordinates are rounded to 4 decimals (~11m precision) before being used
  * as a key fragment so callers querying near-identical points share cache
@@ -48,13 +46,9 @@ export function createCachedProvider(
   ttls: ProviderCacheTtls = DEFAULT_PROVIDER_CACHE_TTLS,
   maxEntries = DEFAULT_MAX_ENTRIES_PER_BUCKET,
 ): WeatherProvider {
-  const currentCache = new LRUCache<string, CurrentWeather>({
+  const currentAndDailyCache = new LRUCache<string, CurrentAndDaily>({
     max: maxEntries,
-    ttl: ttls.currentMs,
-  });
-  const dailyCache = new LRUCache<string, DailyForecast[]>({
-    max: maxEntries,
-    ttl: ttls.dailyMs,
+    ttl: ttls.currentAndDailyMs,
   });
   const hourlyCache = new LRUCache<string, HourlyForecast[]>({
     max: maxEntries,
@@ -67,29 +61,20 @@ export function createCachedProvider(
     requiresApiKey: provider.requiresApiKey,
     isAvailable: () => provider.isAvailable(),
 
-    async getCurrent(latitude, longitude) {
-      const key = coordKey(latitude, longitude);
-      const hit = currentCache.get(key);
-      if (hit !== undefined) return hit;
-      const fresh = await provider.getCurrent(latitude, longitude);
-      currentCache.set(key, fresh);
-      return fresh;
-    },
-
-    async getDailyForecast(latitude, longitude, days) {
+    async getCurrentAndDaily(latitude, longitude, days) {
       const key = `${coordKey(latitude, longitude)}|d=${days}`;
-      const hit = dailyCache.get(key);
+      const hit = currentAndDailyCache.get(key);
       if (hit !== undefined) return hit;
-      const fresh = await provider.getDailyForecast(latitude, longitude, days);
-      dailyCache.set(key, fresh);
+      const fresh = await provider.getCurrentAndDaily(latitude, longitude, days);
+      currentAndDailyCache.set(key, fresh);
       return fresh;
     },
 
-    async getHourlyForecast(latitude, longitude, isoDate) {
+    async getHourly(latitude, longitude, isoDate) {
       const key = `${coordKey(latitude, longitude)}|date=${isoDate}`;
       const hit = hourlyCache.get(key);
       if (hit !== undefined) return hit;
-      const fresh = await provider.getHourlyForecast(latitude, longitude, isoDate);
+      const fresh = await provider.getHourly(latitude, longitude, isoDate);
       hourlyCache.set(key, fresh);
       return fresh;
     },

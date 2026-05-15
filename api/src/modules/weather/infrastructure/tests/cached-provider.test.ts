@@ -1,4 +1,5 @@
 import type {
+  CurrentAndDaily,
   CurrentWeather,
   DailyForecast,
   GeocodingResult,
@@ -9,8 +10,7 @@ import type { WeatherProvider } from "../../ports/weather-provider.ts";
 import { createCachedProvider } from "../cached-provider.ts";
 
 const ttls = {
-  currentMs: 30,
-  dailyMs: 30,
+  currentAndDailyMs: 30,
   hourlyMs: 30,
 } as const;
 
@@ -62,30 +62,34 @@ function buildHourlyForecast(over: Partial<HourlyForecast> = {}): HourlyForecast
   };
 }
 
-function buildFakeProvider(overrides: Partial<WeatherProvider> = {}): WeatherProvider & {
-  spies: {
-    getCurrent: ReturnType<typeof vi.fn>;
-    getDailyForecast: ReturnType<typeof vi.fn>;
-    getHourlyForecast: ReturnType<typeof vi.fn>;
-  };
-} {
-  const getCurrent = vi.fn(async () => buildCurrentWeather());
-  const getDailyForecast = vi.fn(async (_lat, _lng, days: number) =>
-    Array.from({ length: days }, (_, i) =>
+function buildBundle(days: number): CurrentAndDaily {
+  return {
+    current: buildCurrentWeather(),
+    daily: Array.from({ length: days }, (_, i) =>
       buildDailyForecast({ date: `2026-05-${String(15 + i).padStart(2, "0")}` }),
     ),
+  };
+}
+
+function buildFakeProvider(overrides: Partial<WeatherProvider> = {}): WeatherProvider & {
+  spies: {
+    getCurrentAndDaily: ReturnType<typeof vi.fn>;
+    getHourly: ReturnType<typeof vi.fn>;
+  };
+} {
+  const getCurrentAndDaily = vi.fn(
+    async (_lat: number, _lng: number, days: number): Promise<CurrentAndDaily> => buildBundle(days),
   );
-  const getHourlyForecast = vi.fn(async () => [buildHourlyForecast()]);
+  const getHourly = vi.fn(async (): Promise<HourlyForecast[]> => [buildHourlyForecast()]);
 
   return {
     id: "open-meteo",
     displayName: "Open-Meteo",
     requiresApiKey: false,
     isAvailable: () => true,
-    getCurrent,
-    getDailyForecast,
-    getHourlyForecast,
-    spies: { getCurrent, getDailyForecast, getHourlyForecast },
+    getCurrentAndDaily,
+    getHourly,
+    spies: { getCurrentAndDaily, getHourly },
     ...overrides,
   };
 }
@@ -100,69 +104,69 @@ describe("createCachedProvider", () => {
   it("forwards the first call and serves later identical calls from cache", async () => {
     const cached = createCachedProvider(provider, ttls);
 
-    await cached.getCurrent(47.5, 7.5);
-    await cached.getCurrent(47.5, 7.5);
-    await cached.getCurrent(47.5, 7.5);
+    await cached.getCurrentAndDaily(47.5, 7.5, 7);
+    await cached.getCurrentAndDaily(47.5, 7.5, 7);
+    await cached.getCurrentAndDaily(47.5, 7.5, 7);
 
-    expect(provider.spies.getCurrent).toHaveBeenCalledTimes(1);
+    expect(provider.spies.getCurrentAndDaily).toHaveBeenCalledTimes(1);
   });
 
   it("re-fetches once the TTL elapses", async () => {
     const cached = createCachedProvider(provider, ttls);
 
-    await cached.getCurrent(47.5, 7.5);
+    await cached.getCurrentAndDaily(47.5, 7.5, 7);
     await wait(50);
-    await cached.getCurrent(47.5, 7.5);
+    await cached.getCurrentAndDaily(47.5, 7.5, 7);
 
-    expect(provider.spies.getCurrent).toHaveBeenCalledTimes(2);
+    expect(provider.spies.getCurrentAndDaily).toHaveBeenCalledTimes(2);
   });
 
-  it("keys cache by coordinates rounded to 4 decimals so near-identical points share an entry", async () => {
+  it("keys the bundle cache by coordinates rounded to 4 decimals so near-identical points share an entry", async () => {
     const cached = createCachedProvider(provider, ttls);
 
-    await cached.getCurrent(47.500_01, 7.500_01);
-    await cached.getCurrent(47.500_04, 7.500_03);
+    await cached.getCurrentAndDaily(47.500_01, 7.500_01, 7);
+    await cached.getCurrentAndDaily(47.500_04, 7.500_03, 7);
 
-    expect(provider.spies.getCurrent).toHaveBeenCalledTimes(1);
+    expect(provider.spies.getCurrentAndDaily).toHaveBeenCalledTimes(1);
   });
 
-  it("treats different coordinates as distinct cache entries", async () => {
+  it("treats different coordinates as distinct bundle entries", async () => {
     const cached = createCachedProvider(provider, ttls);
 
-    await cached.getCurrent(47.5, 7.5);
-    await cached.getCurrent(48.0, 7.5);
+    await cached.getCurrentAndDaily(47.5, 7.5, 7);
+    await cached.getCurrentAndDaily(48, 7.5, 7);
 
-    expect(provider.spies.getCurrent).toHaveBeenCalledTimes(2);
+    expect(provider.spies.getCurrentAndDaily).toHaveBeenCalledTimes(2);
   });
 
-  it("keys the daily forecast cache by the `days` parameter too", async () => {
+  it("keys the bundle cache by the `days` parameter too", async () => {
     const cached = createCachedProvider(provider, ttls);
 
-    await cached.getDailyForecast(47.5, 7.5, 7);
-    await cached.getDailyForecast(47.5, 7.5, 14);
-    await cached.getDailyForecast(47.5, 7.5, 7);
+    await cached.getCurrentAndDaily(47.5, 7.5, 7);
+    await cached.getCurrentAndDaily(47.5, 7.5, 14);
+    await cached.getCurrentAndDaily(47.5, 7.5, 7);
 
-    expect(provider.spies.getDailyForecast).toHaveBeenCalledTimes(2);
+    expect(provider.spies.getCurrentAndDaily).toHaveBeenCalledTimes(2);
   });
 
   it("keys the hourly forecast cache by the requested ISO date", async () => {
     const cached = createCachedProvider(provider, ttls);
 
-    await cached.getHourlyForecast(47.5, 7.5, "2026-05-15");
-    await cached.getHourlyForecast(47.5, 7.5, "2026-05-16");
-    await cached.getHourlyForecast(47.5, 7.5, "2026-05-15");
+    await cached.getHourly(47.5, 7.5, "2026-05-15");
+    await cached.getHourly(47.5, 7.5, "2026-05-16");
+    await cached.getHourly(47.5, 7.5, "2026-05-15");
 
-    expect(provider.spies.getHourlyForecast).toHaveBeenCalledTimes(2);
+    expect(provider.spies.getHourly).toHaveBeenCalledTimes(2);
   });
 
-  it("keeps caches per method isolated — a current hit does not satisfy a daily call", async () => {
+  it("keeps the bundle and hourly caches isolated — a bundle hit does not satisfy a hourly call", async () => {
     const cached = createCachedProvider(provider, ttls);
 
-    await cached.getCurrent(47.5, 7.5);
-    await cached.getDailyForecast(47.5, 7.5, 7);
+    await cached.getCurrentAndDaily(47.5, 7.5, 7);
+    await cached.getHourly(47.5, 7.5, "2026-05-15");
 
-    expect(provider.spies.getCurrent).toHaveBeenCalledTimes(1);
-    expect(provider.spies.getDailyForecast).toHaveBeenCalledTimes(1);
+    expect(provider.spies.getCurrentAndDaily).toHaveBeenCalledTimes(1);
+    expect(provider.spies.getHourly).toHaveBeenCalledTimes(1);
   });
 
   it("exposes getGeocoding when the wrapped provider exposes it", async () => {

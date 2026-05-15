@@ -1,6 +1,5 @@
 import type {
-  CurrentWeather,
-  DailyForecast,
+  CurrentAndDaily,
   GeocodingResult,
   HourlyForecast,
   WeatherProviderId,
@@ -11,6 +10,13 @@ import type {
  * responsible for fetching from its upstream API and mapping the raw response
  * to the unified shared types — the use cases above (and the HTTP routes)
  * never see provider-specific shapes.
+ *
+ * The interface is split along the two real-world access patterns rather than
+ * by data type: `getCurrentAndDaily` serves the dashboard view (one HTTP call
+ * upstream, one cache entry, one frontend request), and `getHourly` serves
+ * the on-demand drill-down for a specific date. This matches the UX 1:1 and
+ * keeps cache snapshots internally consistent — a user never sees a `current`
+ * from one upstream timestamp paired with a `daily` from another.
  *
  * `isAvailable()` is evaluated eagerly at startup for keyed providers (so
  * `GET /api/weather/providers` can omit unavailable ones). It is not called
@@ -27,12 +33,7 @@ export interface WeatherProvider {
   readonly requiresApiKey: boolean;
   isAvailable(): boolean;
 
-  getCurrent(latitude: number, longitude: number): Promise<CurrentWeather>;
-  getDailyForecast(latitude: number, longitude: number, days: number): Promise<DailyForecast[]>;
-  getHourlyForecast(
-    latitude: number,
-    longitude: number,
-    isoDate: string,
-  ): Promise<HourlyForecast[]>;
+  getCurrentAndDaily(latitude: number, longitude: number, days: number): Promise<CurrentAndDaily>;
+  getHourly(latitude: number, longitude: number, isoDate: string): Promise<HourlyForecast[]>;
   getGeocoding?(query: string): Promise<GeocodingResult[]>;
 }
