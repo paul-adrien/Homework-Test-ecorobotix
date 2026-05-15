@@ -26,7 +26,7 @@ export function SitesMap({ sites, selectedSiteId, onSelect }: SitesMapProps) {
       center={center}
       zoom={sites.length === 1 ? 11 : 7}
       scrollWheelZoom
-      className="size-full"
+      className="absolute inset-0"
     >
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -80,7 +80,7 @@ function RecenterOnSelection({
   return null;
 }
 
-const DEFAULT_CENTER: [number, number] = [47.0, 7.5]; // central-western Europe
+const DEFAULT_CENTER: [number, number] = [47, 7.5]; // central-western Europe
 
 function computeCenter(sites: SitePublic[], selectedSiteId: string | null): [number, number] {
   if (sites.length === 0) return DEFAULT_CENTER;

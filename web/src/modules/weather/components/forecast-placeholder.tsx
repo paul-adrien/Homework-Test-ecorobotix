@@ -12,7 +12,7 @@ type ForecastPlaceholderProps = Readonly<{
  */
 export function ForecastPlaceholder({ site }: ForecastPlaceholderProps) {
   return (
-    <section className="flex h-full flex-col gap-3 rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-surface)] p-4">
+    <section className="flex w-full flex-1 flex-col gap-3 rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-surface)] p-4">
       <header className="flex items-center gap-2">
         <CalendarClock className="size-5 text-[var(--color-primary)]" aria-hidden="true" />
         <div className="flex flex-col">
