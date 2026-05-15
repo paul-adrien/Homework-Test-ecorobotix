@@ -5,3 +5,4 @@
 export * from "./auth.schema.ts";
 export * from "./geocoding.schema.ts";
 export * from "./site.schema.ts";
+export * from "./weather.types.ts";
