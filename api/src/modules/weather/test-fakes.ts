@@ -1,4 +1,9 @@
-import type { CurrentAndDaily, HourlyForecast, WeatherProviderId } from "@agriwatch/shared";
+import type {
+  CurrentAndDaily,
+  HourlyForecast,
+  WeatherProviderId,
+  WeatherProviderModel,
+} from "@agriwatch/shared";
 import { vi } from "vitest";
 import type { UserPreferencesReader } from "./ports/user-preferences-reader.ts";
 import type { WeatherProvider } from "./ports/weather-provider.ts";
@@ -54,6 +59,7 @@ type FakeProviderOptions = Readonly<{
   displayName?: string;
   requiresApiKey?: boolean;
   isAvailable?: boolean;
+  models?: ReadonlyArray<WeatherProviderModel>;
   currentAndDaily?: CurrentAndDaily;
   hourly?: HourlyForecast[];
 }>;
@@ -73,6 +79,7 @@ export function buildFakeProvider(options: FakeProviderOptions = {}): WeatherPro
     id: options.id ?? "open-meteo",
     displayName: options.displayName ?? "Open-Meteo (test)",
     requiresApiKey: options.requiresApiKey ?? false,
+    models: options.models,
     isAvailable: () => options.isAvailable ?? true,
     getCurrentAndDaily,
     getHourly,

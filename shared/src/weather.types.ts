@@ -76,15 +76,29 @@ export const currentAndDailySchema = z.object({
 export type CurrentAndDaily = z.infer<typeof currentAndDailySchema>;
 
 /**
+ * A numerical-weather-model offered by a provider (e.g. Open-Meteo's
+ * `ecmwf_ifs04`, `icon_seamless`, etc.). Providers that don't let callers
+ * pick a model (like Yr.no, which serves a fixed internal blend) simply
+ * omit the `models` field from their info.
+ */
+export const weatherProviderModelSchema = z.object({
+  id: z.string().min(1),
+  displayName: z.string().min(1),
+});
+export type WeatherProviderModel = z.infer<typeof weatherProviderModelSchema>;
+
+/**
  * Public-facing description of a registered provider. Returned by the
  * `GET /api/weather/providers` endpoint so the frontend switcher can show
  * only providers that are actually available (keyed providers whose env var
- * is missing are filtered out server-side).
+ * is missing are filtered out server-side) and flatten the (provider, model)
+ * pairs into the switcher's dropdown.
  */
 export const weatherProviderInfoSchema = z.object({
   id: weatherProviderIdSchema,
   displayName: z.string(),
   requiresApiKey: z.boolean(),
+  models: z.array(weatherProviderModelSchema).optional(),
 });
 export type WeatherProviderInfo = z.infer<typeof weatherProviderInfoSchema>;
 export const weatherProvidersListSchema = z.array(weatherProviderInfoSchema);
@@ -93,6 +107,7 @@ const coordinatesShape = {
   lat: z.coerce.number().min(-90).max(90),
   lng: z.coerce.number().min(-180).max(180),
   provider: weatherProviderIdSchema.optional(),
+  model: z.string().min(1).optional(),
 };
 
 /**

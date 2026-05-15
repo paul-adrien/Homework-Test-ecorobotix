@@ -14,6 +14,7 @@ import type { GetHourlyUseCase } from "../application/get-hourly.usecase.ts";
 import type { ListProvidersUseCase } from "../application/list-providers.usecase.ts";
 import {
   WeatherProviderFetchFailed,
+  WeatherProviderModelNotAvailable,
   WeatherProviderNotAvailable,
 } from "../domain/weather.errors.ts";
 
@@ -52,6 +53,7 @@ export function createWeatherRoutes(deps: Deps): FastifyPluginAsyncZod {
           querystring: weatherQuerySchema,
           response: {
             200: currentAndDailySchema,
+            400: errorResponseSchema,
             404: errorResponseSchema,
             502: errorResponseSchema,
           },
@@ -66,9 +68,13 @@ export function createWeatherRoutes(deps: Deps): FastifyPluginAsyncZod {
             longitude: request.query.lng,
             days: request.query.days,
             providerId: request.query.provider,
+            model: request.query.model,
           });
           return reply.send(bundle);
         } catch (err) {
+          if (err instanceof WeatherProviderModelNotAvailable) {
+            return reply.code(400).send({ error: err.message });
+          }
           if (err instanceof WeatherProviderNotAvailable) {
             return reply.code(404).send({ error: err.message });
           }
@@ -90,6 +96,7 @@ export function createWeatherRoutes(deps: Deps): FastifyPluginAsyncZod {
           querystring: hourlyForecastQuerySchema,
           response: {
             200: hourlyForecastListSchema,
+            400: errorResponseSchema,
             404: errorResponseSchema,
             502: errorResponseSchema,
           },
@@ -104,9 +111,13 @@ export function createWeatherRoutes(deps: Deps): FastifyPluginAsyncZod {
             longitude: request.query.lng,
             date: request.query.date,
             providerId: request.query.provider,
+            model: request.query.model,
           });
           return reply.send(hours);
         } catch (err) {
+          if (err instanceof WeatherProviderModelNotAvailable) {
+            return reply.code(400).send({ error: err.message });
+          }
           if (err instanceof WeatherProviderNotAvailable) {
             return reply.code(404).send({ error: err.message });
           }

@@ -157,6 +157,40 @@ describe("createOpenMeteoProvider", () => {
       expect(current.windDirection).toBe(0);
     });
 
+    it("forwards `opts.model` to Open-Meteo via the `models=` param", async () => {
+      const fetchFn = mockFetch(async () =>
+        jsonResponse({ current: { time: "2026-05-15T13:00" } }),
+      );
+      const provider = createOpenMeteoProvider({ fetch: fetchFn });
+
+      await provider.getCurrentAndDaily(47.5, 7.5, 7, { model: "ecmwf_ifs04" });
+
+      const url = new URL(fetchFn.mock.calls[0]?.[0] as string);
+      expect(url.searchParams.get("models")).toBe("ecmwf_ifs04");
+    });
+
+    it("does NOT send a `models=` param for the `best_match` shortcut (it's Open-Meteo's default)", async () => {
+      const fetchFn = mockFetch(async () =>
+        jsonResponse({ current: { time: "2026-05-15T13:00" } }),
+      );
+      const provider = createOpenMeteoProvider({ fetch: fetchFn });
+
+      await provider.getCurrentAndDaily(47.5, 7.5, 7, { model: "best_match" });
+
+      const url = new URL(fetchFn.mock.calls[0]?.[0] as string);
+      expect(url.searchParams.get("models")).toBeNull();
+    });
+
+    it("exposes the curated list of Open-Meteo models via the `models` property", () => {
+      const provider = createOpenMeteoProvider({ fetch: mockFetch(async () => jsonResponse({})) });
+
+      const modelIds = provider.models?.map((m) => m.id) ?? [];
+      expect(modelIds).toContain("best_match");
+      expect(modelIds).toContain("ecmwf_ifs04");
+      expect(modelIds).toContain("icon_seamless");
+      expect(modelIds).toContain("gfs_global");
+    });
+
     it("requests the documented set of current, hourly and daily variables in a single call", async () => {
       const fetchFn = mockFetch(async () =>
         jsonResponse({ current: { time: "2026-05-15T13:00" } }),

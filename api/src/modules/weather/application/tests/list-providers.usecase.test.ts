@@ -47,4 +47,28 @@ describe("listProviders use case", () => {
     const useCase = createListProvidersUseCase({ registry: new Map() });
     expect(useCase()).toEqual([]);
   });
+
+  it("includes a provider's `models` list when present, and omits the field otherwise", () => {
+    const openMeteo = buildFakeProvider({
+      id: "open-meteo",
+      displayName: "Open-Meteo",
+      models: [
+        { id: "best_match", displayName: "Best match" },
+        { id: "ecmwf_ifs04", displayName: "ECMWF" },
+      ],
+    });
+    const yrNo = buildFakeProvider({ id: "yr-no", displayName: "Yr.no" });
+    const registry = new Map([
+      ["open-meteo" as const, openMeteo],
+      ["yr-no" as const, yrNo],
+    ]);
+
+    const result = createListProvidersUseCase({ registry })();
+
+    expect(result[0]?.models).toEqual([
+      { id: "best_match", displayName: "Best match" },
+      { id: "ecmwf_ifs04", displayName: "ECMWF" },
+    ]);
+    expect(result[1]?.models).toBeUndefined();
+  });
 });

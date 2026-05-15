@@ -3,7 +3,22 @@ import type {
   GeocodingResult,
   HourlyForecast,
   WeatherProviderId,
+  WeatherProviderModel,
 } from "@agriwatch/shared";
+
+/**
+ * Options that can be passed to a provider call. Today only `model` is
+ * supported; kept as an options bag so future extensions (units, scenarios,
+ * ensemble percentiles) don't require breaking the signature.
+ */
+export type WeatherProviderCallOptions = Readonly<{
+  /**
+   * Provider-specific model id (e.g. `ecmwf_ifs04`). Providers that expose a
+   * `models` list use it to pick which numerical model to query upstream;
+   * providers without multi-model support ignore it.
+   */
+  model?: string;
+}>;
 
 /**
  * Port: a weather data source. Each adapter under `infrastructure/` is
@@ -31,9 +46,25 @@ export interface WeatherProvider {
   readonly id: WeatherProviderId;
   readonly displayName: string;
   readonly requiresApiKey: boolean;
+  /**
+   * Numerical models the caller can pick from. Providers that don't let you
+   * choose (Yr.no serves a fixed internal blend) leave this `undefined`.
+   * The use cases reject `opts.model` values that aren't in this list.
+   */
+  readonly models?: ReadonlyArray<WeatherProviderModel>;
   isAvailable(): boolean;
 
-  getCurrentAndDaily(latitude: number, longitude: number, days: number): Promise<CurrentAndDaily>;
-  getHourly(latitude: number, longitude: number, isoDate: string): Promise<HourlyForecast[]>;
+  getCurrentAndDaily(
+    latitude: number,
+    longitude: number,
+    days: number,
+    opts?: WeatherProviderCallOptions,
+  ): Promise<CurrentAndDaily>;
+  getHourly(
+    latitude: number,
+    longitude: number,
+    isoDate: string,
+    opts?: WeatherProviderCallOptions,
+  ): Promise<HourlyForecast[]>;
   getGeocoding?(query: string): Promise<GeocodingResult[]>;
 }

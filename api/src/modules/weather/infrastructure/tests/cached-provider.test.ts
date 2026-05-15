@@ -149,6 +149,25 @@ describe("createCachedProvider", () => {
     expect(provider.spies.getCurrentAndDaily).toHaveBeenCalledTimes(2);
   });
 
+  it("keys the bundle cache by the `model` option too", async () => {
+    const cached = createCachedProvider(provider, ttls);
+
+    await cached.getCurrentAndDaily(47.5, 7.5, 7, { model: "ecmwf_ifs04" });
+    await cached.getCurrentAndDaily(47.5, 7.5, 7, { model: "gfs_global" });
+    await cached.getCurrentAndDaily(47.5, 7.5, 7, { model: "ecmwf_ifs04" });
+
+    expect(provider.spies.getCurrentAndDaily).toHaveBeenCalledTimes(2);
+  });
+
+  it("treats a default (no `model`) call as distinct from an explicit model id", async () => {
+    const cached = createCachedProvider(provider, ttls);
+
+    await cached.getCurrentAndDaily(47.5, 7.5, 7);
+    await cached.getCurrentAndDaily(47.5, 7.5, 7, { model: "best_match" });
+
+    expect(provider.spies.getCurrentAndDaily).toHaveBeenCalledTimes(2);
+  });
+
   it("keys the hourly forecast cache by the requested ISO date", async () => {
     const cached = createCachedProvider(provider, ttls);
 

@@ -145,6 +145,10 @@ export function createYrNoProvider(
     requiresApiKey: false,
     isAvailable: () => true,
 
+    // Yr.no serves a single internal blend (MEPS + ECMWF) and has no
+    // `models=` equivalent — `opts.model` is intentionally ignored. The use
+    // case rejects an explicit model on this provider before the call ever
+    // gets here.
     async getCurrentAndDaily(latitude, longitude, days) {
       const payload = await fetchOrRefresh(latitude, longitude);
       const timeseries = payload.properties.timeseries;

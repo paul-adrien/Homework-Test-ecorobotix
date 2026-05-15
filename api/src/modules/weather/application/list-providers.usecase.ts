@@ -19,6 +19,7 @@ export function createListProvidersUseCase({ registry }: Deps) {
         id: provider.id,
         displayName: provider.displayName,
         requiresApiKey: provider.requiresApiKey,
+        ...(provider.models ? { models: [...provider.models] } : {}),
       }));
   };
 }

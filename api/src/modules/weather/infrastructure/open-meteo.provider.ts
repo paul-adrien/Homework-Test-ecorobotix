@@ -1,6 +1,26 @@
-import type { CurrentWeather, DailyForecast, HourlyForecast } from "@agriwatch/shared";
+import type {
+  CurrentWeather,
+  DailyForecast,
+  HourlyForecast,
+  WeatherProviderModel,
+} from "@agriwatch/shared";
 import { WeatherProviderFetchFailed } from "../domain/weather.errors.ts";
 import type { WeatherProvider } from "../ports/weather-provider.ts";
+
+/**
+ * Curated subset of Open-Meteo's `models=` parameter values, ordered as
+ * they should appear in the frontend dropdown. `best_match` is Open-Meteo's
+ * own auto-select (their default), kept first as the "safe" choice. The
+ * other three are the most widely-cited global models in agri forecasting.
+ *
+ * Adding a new model = add an entry here, no other code change.
+ */
+export const OPEN_METEO_MODELS: ReadonlyArray<WeatherProviderModel> = [
+  { id: "best_match", displayName: "Best match (auto)" },
+  { id: "ecmwf_ifs04", displayName: "ECMWF (European)" },
+  { id: "icon_seamless", displayName: "ICON (DWD · German)" },
+  { id: "gfs_global", displayName: "GFS (US)" },
+];
 
 const BASE_URL = "https://api.open-meteo.com/v1/forecast";
 
@@ -122,9 +142,10 @@ export function createOpenMeteoProvider(deps: { fetch?: typeof fetch } = {}): We
     id: "open-meteo",
     displayName: "Open-Meteo",
     requiresApiKey: false,
+    models: OPEN_METEO_MODELS,
     isAvailable: () => true,
 
-    async getCurrentAndDaily(latitude, longitude, days) {
+    async getCurrentAndDaily(latitude, longitude, days, opts) {
       const params = new URLSearchParams({
         latitude: String(latitude),
         longitude: String(longitude),
@@ -134,6 +155,7 @@ export function createOpenMeteoProvider(deps: { fetch?: typeof fetch } = {}): We
         timezone: "UTC",
         forecast_days: String(days),
       });
+      applyModel(params, opts?.model);
       const data = await getJson(params);
       return {
         current: mapCurrent(data),
@@ -141,7 +163,7 @@ export function createOpenMeteoProvider(deps: { fetch?: typeof fetch } = {}): We
       };
     },
 
-    async getHourly(latitude, longitude, isoDate) {
+    async getHourly(latitude, longitude, isoDate, opts) {
       const params = new URLSearchParams({
         latitude: String(latitude),
         longitude: String(longitude),
@@ -150,10 +172,23 @@ export function createOpenMeteoProvider(deps: { fetch?: typeof fetch } = {}): We
         start_date: isoDate,
         end_date: isoDate,
       });
+      applyModel(params, opts?.model);
       const data = await getJson(params);
       return mapHourly(data);
     },
   };
+}
+
+/**
+ * Forward the model selector to Open-Meteo via its `models=` param. The
+ * `best_match` value is Open-Meteo's own default — omitting the param has
+ * the same effect, so we skip it to keep request URLs minimal and improve
+ * cache key locality across "pin best_match" vs "no pin" callers.
+ */
+function applyModel(params: URLSearchParams, modelId: string | undefined): void {
+  if (modelId && modelId !== "best_match") {
+    params.set("models", modelId);
+  }
 }
 
 function mapCurrent(data: OpenMeteoResponse): CurrentWeather {

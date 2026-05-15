@@ -59,22 +59,23 @@ export function createCachedProvider(
     id: provider.id,
     displayName: provider.displayName,
     requiresApiKey: provider.requiresApiKey,
+    models: provider.models,
     isAvailable: () => provider.isAvailable(),
 
-    async getCurrentAndDaily(latitude, longitude, days) {
-      const key = `${coordKey(latitude, longitude)}|d=${days}`;
+    async getCurrentAndDaily(latitude, longitude, days, opts) {
+      const key = `${coordKey(latitude, longitude)}|d=${days}|m=${opts?.model ?? "default"}`;
       const hit = currentAndDailyCache.get(key);
       if (hit !== undefined) return hit;
-      const fresh = await provider.getCurrentAndDaily(latitude, longitude, days);
+      const fresh = await provider.getCurrentAndDaily(latitude, longitude, days, opts);
       currentAndDailyCache.set(key, fresh);
       return fresh;
     },
 
-    async getHourly(latitude, longitude, isoDate) {
-      const key = `${coordKey(latitude, longitude)}|date=${isoDate}`;
+    async getHourly(latitude, longitude, isoDate, opts) {
+      const key = `${coordKey(latitude, longitude)}|date=${isoDate}|m=${opts?.model ?? "default"}`;
       const hit = hourlyCache.get(key);
       if (hit !== undefined) return hit;
-      const fresh = await provider.getHourly(latitude, longitude, isoDate);
+      const fresh = await provider.getHourly(latitude, longitude, isoDate, opts);
       hourlyCache.set(key, fresh);
       return fresh;
     },

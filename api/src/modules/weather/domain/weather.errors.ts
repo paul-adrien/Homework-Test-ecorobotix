@@ -26,3 +26,19 @@ export class WeatherProviderFetchFailed extends Error {
     this.name = "WeatherProviderFetchFailed";
   }
 }
+
+/**
+ * Thrown when the caller asks for a model that the provider does not expose
+ * (or asks for a model on a provider that doesn't support model selection
+ * at all). Mapped to HTTP 400 at the interface boundary — it's invalid input,
+ * not a transient upstream failure.
+ */
+export class WeatherProviderModelNotAvailable extends Error {
+  constructor(
+    public readonly providerId: WeatherProviderId | string,
+    public readonly modelId: string,
+  ) {
+    super(`Provider ${providerId} does not expose model "${modelId}"`);
+    this.name = "WeatherProviderModelNotAvailable";
+  }
+}

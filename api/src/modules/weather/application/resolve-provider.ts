@@ -1,5 +1,8 @@
 import type { WeatherProviderId } from "@agriwatch/shared";
-import { WeatherProviderNotAvailable } from "../domain/weather.errors.ts";
+import {
+  WeatherProviderModelNotAvailable,
+  WeatherProviderNotAvailable,
+} from "../domain/weather.errors.ts";
 import type { UserPreferencesReader } from "../ports/user-preferences-reader.ts";
 import type { WeatherProvider } from "../ports/weather-provider.ts";
 
@@ -34,4 +37,17 @@ export async function resolveProvider(
     throw new WeatherProviderNotAvailable(providerId);
   }
   return provider;
+}
+
+/**
+ * Validates that a caller-supplied `modelId` is actually exposed by the
+ * resolved provider. A provider without a `models` array rejects any
+ * non-empty `modelId` (asking for a model on a fixed-blend source is a
+ * client mistake, not a no-op).
+ */
+export function assertModelAvailable(provider: WeatherProvider, modelId: string | undefined): void {
+  if (!modelId) return;
+  if (!provider.models?.some((m) => m.id === modelId)) {
+    throw new WeatherProviderModelNotAvailable(provider.id, modelId);
+  }
 }

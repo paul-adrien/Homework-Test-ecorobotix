@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { WeatherProviderNotAvailable } from "../../domain/weather.errors.ts";
+import {
+  WeatherProviderModelNotAvailable,
+  WeatherProviderNotAvailable,
+} from "../../domain/weather.errors.ts";
 import {
   buildFakeProvider,
   buildHourlyForecast,
@@ -21,7 +24,9 @@ describe("getHourly use case", () => {
       date: "2026-05-20",
     });
 
-    expect(openMeteo.spies.getHourly).toHaveBeenCalledWith(47.5, 7.5, "2026-05-20");
+    expect(openMeteo.spies.getHourly).toHaveBeenCalledWith(47.5, 7.5, "2026-05-20", {
+      model: undefined,
+    });
   });
 
   it("falls back to the user's preferred provider when no provider is pinned", async () => {
@@ -56,6 +61,50 @@ describe("getHourly use case", () => {
         providerId: "yr-no",
       }),
     ).rejects.toBeInstanceOf(WeatherProviderNotAvailable);
+  });
+
+  it("forwards a valid `model` to the provider", async () => {
+    const openMeteo = buildFakeProvider({
+      id: "open-meteo",
+      models: [{ id: "ecmwf_ifs04", displayName: "ECMWF" }],
+    });
+    const registry = new Map([["open-meteo" as const, openMeteo]]);
+    const userPreferencesReader = createInMemoryUserPreferencesReader();
+
+    const useCase = createGetHourlyUseCase({ registry, userPreferencesReader });
+    await useCase({
+      userId: "user-1",
+      latitude: 47.5,
+      longitude: 7.5,
+      date: "2026-05-20",
+      model: "ecmwf_ifs04",
+    });
+
+    expect(openMeteo.spies.getHourly).toHaveBeenCalledWith(47.5, 7.5, "2026-05-20", {
+      model: "ecmwf_ifs04",
+    });
+  });
+
+  it("throws WeatherProviderModelNotAvailable when the model is unknown", async () => {
+    const openMeteo = buildFakeProvider({
+      id: "open-meteo",
+      models: [{ id: "best_match", displayName: "Best match" }],
+    });
+    const registry = new Map([["open-meteo" as const, openMeteo]]);
+    const userPreferencesReader = createInMemoryUserPreferencesReader();
+
+    const useCase = createGetHourlyUseCase({ registry, userPreferencesReader });
+
+    await expect(
+      useCase({
+        userId: "user-1",
+        latitude: 47.5,
+        longitude: 7.5,
+        date: "2026-05-20",
+        model: "unknown",
+      }),
+    ).rejects.toBeInstanceOf(WeatherProviderModelNotAvailable);
+    expect(openMeteo.spies.getHourly).not.toHaveBeenCalled();
   });
 
   it("returns the hourly forecast exactly as the provider returns it", async () => {

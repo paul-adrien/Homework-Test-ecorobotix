@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { WeatherProviderNotAvailable } from "../../domain/weather.errors.ts";
+import {
+  WeatherProviderModelNotAvailable,
+  WeatherProviderNotAvailable,
+} from "../../domain/weather.errors.ts";
 import {
   buildCurrentAndDaily,
   buildFakeProvider,
@@ -54,7 +57,9 @@ describe("getCurrentAndDaily use case", () => {
     const useCase = createGetCurrentAndDailyUseCase({ registry, userPreferencesReader });
     await useCase({ userId: "user-1", latitude: 47.5, longitude: 7.5, days: 7 });
 
-    expect(openMeteo.spies.getCurrentAndDaily).toHaveBeenCalledWith(47.5, 7.5, 7);
+    expect(openMeteo.spies.getCurrentAndDaily).toHaveBeenCalledWith(47.5, 7.5, 7, {
+      model: undefined,
+    });
   });
 
   it("throws WeatherProviderNotAvailable when the requested provider is not registered", async () => {
@@ -85,6 +90,74 @@ describe("getCurrentAndDaily use case", () => {
     await expect(
       useCase({ userId: "user-1", latitude: 47.5, longitude: 7.5, days: 7 }),
     ).rejects.toBeInstanceOf(WeatherProviderNotAvailable);
+  });
+
+  it("forwards a valid `model` to the provider when the provider exposes that model", async () => {
+    const openMeteo = buildFakeProvider({
+      id: "open-meteo",
+      models: [
+        { id: "best_match", displayName: "Best match" },
+        { id: "ecmwf_ifs04", displayName: "ECMWF" },
+      ],
+    });
+    const registry = new Map([["open-meteo" as const, openMeteo]]);
+    const userPreferencesReader = createInMemoryUserPreferencesReader();
+
+    const useCase = createGetCurrentAndDailyUseCase({ registry, userPreferencesReader });
+    await useCase({
+      userId: "user-1",
+      latitude: 47.5,
+      longitude: 7.5,
+      days: 7,
+      model: "ecmwf_ifs04",
+    });
+
+    expect(openMeteo.spies.getCurrentAndDaily).toHaveBeenCalledWith(47.5, 7.5, 7, {
+      model: "ecmwf_ifs04",
+    });
+  });
+
+  it("throws WeatherProviderModelNotAvailable when the model is not in the provider's list", async () => {
+    const openMeteo = buildFakeProvider({
+      id: "open-meteo",
+      models: [{ id: "best_match", displayName: "Best match" }],
+    });
+    const registry = new Map([["open-meteo" as const, openMeteo]]);
+    const userPreferencesReader = createInMemoryUserPreferencesReader();
+
+    const useCase = createGetCurrentAndDailyUseCase({ registry, userPreferencesReader });
+
+    await expect(
+      useCase({
+        userId: "user-1",
+        latitude: 47.5,
+        longitude: 7.5,
+        days: 7,
+        model: "unknown_model",
+      }),
+    ).rejects.toBeInstanceOf(WeatherProviderModelNotAvailable);
+    expect(openMeteo.spies.getCurrentAndDaily).not.toHaveBeenCalled();
+  });
+
+  it("throws WeatherProviderModelNotAvailable when the resolved provider exposes no models at all", async () => {
+    // Yr.no in production exposes no `models` field — asking for one is a
+    // client mistake, not a silent no-op.
+    const yrNo = buildFakeProvider({ id: "yr-no" });
+    const registry = new Map([["yr-no" as const, yrNo]]);
+    const userPreferencesReader = createInMemoryUserPreferencesReader();
+
+    const useCase = createGetCurrentAndDailyUseCase({ registry, userPreferencesReader });
+
+    await expect(
+      useCase({
+        userId: "user-1",
+        latitude: 47.5,
+        longitude: 7.5,
+        days: 7,
+        providerId: "yr-no",
+        model: "ecmwf_ifs04",
+      }),
+    ).rejects.toBeInstanceOf(WeatherProviderModelNotAvailable);
   });
 
   it("returns the bundle exactly as the provider returns it", async () => {

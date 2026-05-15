@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { makeSessionCookieFor } from "../../../../shared/test/test-app.ts";
 import {
   WeatherProviderFetchFailed,
+  WeatherProviderModelNotAvailable,
   WeatherProviderNotAvailable,
 } from "../../domain/weather.errors.ts";
 import { buildCurrentAndDaily, buildHourlyForecast } from "../../test-fakes.ts";
@@ -123,6 +124,39 @@ describe("GET /api/weather", () => {
     });
 
     expect(res.statusCode).toBe(502);
+  });
+
+  it("400 when the use case raises WeatherProviderModelNotAvailable", async () => {
+    const deps = buildDeps();
+    deps.getCurrentAndDailyUseCase.mockRejectedValue(
+      new WeatherProviderModelNotAvailable("open-meteo", "unknown_model"),
+    );
+    app = await buildTestApp(deps);
+
+    const res = await app.inject({
+      method: "GET",
+      url: "/api/weather?lat=47.5&lng=7.5&model=unknown_model",
+      cookies: { session: sessionCookie },
+    });
+
+    expect(res.statusCode).toBe(400);
+    expect(res.json().error).toContain("unknown_model");
+  });
+
+  it("forwards the `model` query param to the use case", async () => {
+    const deps = buildDeps();
+    deps.getCurrentAndDailyUseCase.mockResolvedValue(buildCurrentAndDaily());
+    app = await buildTestApp(deps);
+
+    await app.inject({
+      method: "GET",
+      url: "/api/weather?lat=47.5&lng=7.5&model=ecmwf_ifs04",
+      cookies: { session: sessionCookie },
+    });
+
+    expect(deps.getCurrentAndDailyUseCase).toHaveBeenCalledWith(
+      expect.objectContaining({ model: "ecmwf_ifs04" }),
+    );
   });
 });
 
