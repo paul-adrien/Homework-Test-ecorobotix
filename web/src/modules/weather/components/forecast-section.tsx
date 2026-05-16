@@ -6,8 +6,10 @@ import { useHourly } from "../hooks/use-hourly.ts";
 import { useProviders } from "../hooks/use-providers.ts";
 import type { SliceHours } from "../lib/slice-hourly.ts";
 import { DailySummaryTable } from "./daily/daily-summary-table.tsx";
+import { DailySummaryTableSkeleton } from "./daily/daily-summary-table-skeleton.tsx";
 import { HourlyHeader } from "./hourly/hourly-header.tsx";
 import { HourlyTable } from "./hourly/hourly-table.tsx";
+import { HourlyTableSkeleton } from "./hourly/hourly-table-skeleton.tsx";
 import { ProviderModelSwitcher, type ProviderSelection } from "./provider-model-switcher.tsx";
 
 const DEFAULT_DAYS = 7;
@@ -84,11 +86,7 @@ export function ForecastSection({ site }: ForecastSectionProps) {
     >
       <ProviderModelSwitcher selection={selection} onChange={setSelection} />
 
-      {bundleQuery.isPending ? (
-        <p className="rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-surface)] px-4 py-6 text-center text-[var(--color-text-secondary)] text-sm">
-          Loading forecast…
-        </p>
-      ) : null}
+      {bundleQuery.isPending ? <DailySummaryTableSkeleton days={DEFAULT_DAYS} /> : null}
 
       {bundleQuery.isError ? (
         <div
@@ -139,6 +137,10 @@ export function ForecastSection({ site }: ForecastSectionProps) {
           sliceHours={sliceHours}
           selectedDate={selectedDate}
         />
+      ) : null}
+
+      {hourlyQuery.isPending && selectedDate !== null ? (
+        <HourlyTableSkeleton sliceHours={sliceHours} />
       ) : null}
     </section>
   );
