@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { usePreferences } from "@/modules/preferences/hooks/use-preferences.ts";
 import { EmptyState } from "@/modules/sites/components/empty-state.tsx";
 import { MobileMapDrawer } from "@/modules/sites/components/mobile-map-drawer.tsx";
 import { MobileSiteSelector } from "@/modules/sites/components/mobile-site-selector.tsx";
@@ -27,17 +28,32 @@ import { DashboardLayout } from "./dashboard-layout.tsx";
  */
 export function DashboardPage() {
   const { data: sites, isLoading } = useSites();
+  const { data: preferences } = usePreferences();
   const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null);
   const isMobile = useIsMobile();
 
+  // First-load selection honours the user's default site (US6) when it's
+  // present in the current sites list. Once the user picks something
+  // explicitly (`selectedSiteId !== null`), preference changes during the
+  // session no longer hijack the view — the agent stays on what they were
+  // looking at. The "site was deleted" fallback to sites[0] runs unchanged.
   useEffect(() => {
     if (!sites || sites.length === 0) {
       if (selectedSiteId !== null) setSelectedSiteId(null);
       return;
     }
+    if (selectedSiteId === null) {
+      const defaultId = preferences?.defaultSiteId;
+      if (defaultId && sites.some((s) => s.id === defaultId)) {
+        setSelectedSiteId(defaultId);
+        return;
+      }
+      setSelectedSiteId(sites[0]?.id ?? null);
+      return;
+    }
     const stillExists = sites.some((s) => s.id === selectedSiteId);
     if (!stillExists) setSelectedSiteId(sites[0]?.id ?? null);
-  }, [sites, selectedSiteId]);
+  }, [sites, selectedSiteId, preferences?.defaultSiteId]);
 
   if (isLoading) {
     return (
