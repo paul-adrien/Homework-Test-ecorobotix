@@ -42,7 +42,12 @@ export function MetricRow({
       >
         <span className="inline-flex items-center gap-1.5">
           <Icon className="size-4 shrink-0" aria-hidden="true" />
-          <span className="hidden sm:inline">{label}</span>
+          {/* `sr-only` on mobile keeps the metric name accessible to screen
+              readers even when the visible column collapses to icon-only —
+              otherwise the `<th scope="row">` would have an empty
+              accessible name and the table would be unreadable for
+              non-sighted agents. */}
+          <span className="sr-only sm:not-sr-only">{label}</span>
           <span className="hidden font-normal text-[10px] text-[var(--color-text-muted)] sm:inline">
             ({unit})
           </span>
