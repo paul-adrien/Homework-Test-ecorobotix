@@ -73,8 +73,14 @@ export function LatLngInput({ onResolve }: LatLngInputProps) {
 
   const serverError = toServerErrorMessage(reverseMutation.error);
 
+  // `LatLngInput` is rendered inside `CreateSiteDialog`'s `<form>`, so we
+  // can't nest another `<form>` here (the browser drops the inner one and
+  // any `type="submit"` button ends up submitting the outer dialog form).
+  // We keep react-hook-form's validation but trigger the look-up via an
+  // explicit `onClick` on a `type="button"` Button — submit() runs the
+  // validated callback directly, no real form submission needed.
   return (
-    <form onSubmit={submit} className="flex flex-col gap-3" noValidate>
+    <div className="flex flex-col gap-3">
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <FormField>
           <Label htmlFor="site-latitude">Latitude</Label>
@@ -110,10 +116,15 @@ export function LatLngInput({ onResolve }: LatLngInputProps) {
         </Alert>
       ) : null}
 
-      <Button type="submit" variant="secondary" disabled={reverseMutation.isPending || !isValid}>
+      <Button
+        type="button"
+        variant="secondary"
+        onClick={() => submit()}
+        disabled={reverseMutation.isPending || !isValid}
+      >
         <MapPin className="size-4" aria-hidden="true" />
         {reverseMutation.isPending ? "Looking up location…" : "Look up location"}
       </Button>
-    </form>
+    </div>
   );
 }

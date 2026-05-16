@@ -6,11 +6,9 @@ import { expect, test } from "@playwright/test";
  *  forecast → heart-toggle as default.
  *
  * The test uses a unique email per run so it never collides with prior
- * runs (no DB reset needed between runs). The site is created via the
- * search flow because the dialog renders a `<form>` inside `LatLngInput`
- * which sits inside the dialog's own `<form>` — invalid nested HTML, the
- * browser drops the inner one so "Look up location" never actually fires.
- * Search mode doesn't have that issue.
+ * runs (no DB reset needed between runs). It picks the search flow
+ * (rather than lat/lng coordinates) because that's the more common path
+ * an agent uses — Open-Meteo geocoding for a city name.
  * Weather and geocoding call upstream (Open-Meteo) — accepted as part of
  * the integration scope; if the network flakes the test will retry on CI.
  */
