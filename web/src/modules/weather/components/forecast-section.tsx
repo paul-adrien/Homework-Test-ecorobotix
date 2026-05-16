@@ -1,7 +1,12 @@
 import type { SitePublic } from "@agriwatch/shared";
 import { AlertCircle } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useCurrentAndDaily } from "../hooks/use-current-and-daily.ts";
-import { DailySummaryTable } from "./daily-summary-table.tsx";
+import { useHourly } from "../hooks/use-hourly.ts";
+import type { SliceHours } from "../lib/slice-hourly.ts";
+import { DailySummaryTable } from "./daily/daily-summary-table.tsx";
+import { HourlyHeader } from "./hourly/hourly-header.tsx";
+import { HourlyTable } from "./hourly/hourly-table.tsx";
 
 const DEFAULT_DAYS = 7;
 
@@ -10,26 +15,47 @@ type ForecastSectionProps = Readonly<{
 }>;
 
 /**
- * Forecast block for a selected site. Owns the data fetch and decides what
- * to show (loading skeleton, error notice, empty result, or the actual
- * daily summary table). The hourly drill-down table lands in Phase 4.C and
- * will be rendered below the daily summary on day selection.
+ * Forecast block for a selected site. Owns the data fetch for both the
+ * daily summary (current + multi-day bundle) and the hourly drill-down
+ * for the currently picked day. The selected day defaults to the first
+ * available day (typically today) so the agent sees an hourly breakdown
+ * on first load without needing an extra tap; switching day is a
+ * one-click action on the daily table row.
  */
 export function ForecastSection({ site }: ForecastSectionProps) {
-  const query = useCurrentAndDaily({ site, days: DEFAULT_DAYS });
+  const bundleQuery = useCurrentAndDaily({ site, days: DEFAULT_DAYS });
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [sliceHours, setSliceHours] = useState<SliceHours>(3);
+
+  // Auto-pin the first available day when the bundle loads, OR when the
+  // currently-selected date disappears from the new bundle (provider/site
+  // switch). Keeps the hourly table always populated without forcing
+  // the agent to re-click after a refresh.
+  useEffect(() => {
+    const dates = bundleQuery.data?.daily.map((d) => d.date) ?? [];
+    if (dates.length === 0) {
+      if (selectedDate !== null) setSelectedDate(null);
+      return;
+    }
+    if (selectedDate === null || !dates.includes(selectedDate)) {
+      setSelectedDate(dates[0] ?? null);
+    }
+  }, [bundleQuery.data, selectedDate]);
+
+  const hourlyQuery = useHourly({ site, date: selectedDate });
 
   return (
     <section
       aria-label={`Forecast for ${site.label}`}
       className="flex w-full flex-1 flex-col gap-3"
     >
-      {query.isPending ? (
+      {bundleQuery.isPending ? (
         <p className="rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-surface)] px-4 py-6 text-center text-[var(--color-text-secondary)] text-sm">
           Loading forecast…
         </p>
       ) : null}
 
-      {query.isError ? (
+      {bundleQuery.isError ? (
         <div
           role="alert"
           className="flex items-start gap-2 rounded-lg border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/5 px-4 py-3 text-[var(--color-danger)] text-sm"
@@ -42,7 +68,37 @@ export function ForecastSection({ site }: ForecastSectionProps) {
         </div>
       ) : null}
 
-      {query.data ? <DailySummaryTable daily={query.data.daily} /> : null}
+      {bundleQuery.data ? (
+        <DailySummaryTable
+          daily={bundleQuery.data.daily}
+          selectedDate={selectedDate}
+          onSelectDate={setSelectedDate}
+        />
+      ) : null}
+
+      {hourlyQuery.isError ? (
+        <div
+          role="alert"
+          className="flex items-start gap-2 rounded-lg border border-[var(--color-danger)]/30 bg-[var(--color-danger)]/5 px-4 py-3 text-[var(--color-danger)] text-sm"
+        >
+          <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+          <p>Couldn't load the hourly breakdown for this day.</p>
+        </div>
+      ) : null}
+
+      {bundleQuery.data && selectedDate !== null ? (
+        <div className="mt-3">
+          <HourlyHeader
+            selectedDate={selectedDate}
+            availableDates={bundleQuery.data.daily.map((d) => d.date)}
+            onSelectDate={setSelectedDate}
+            sliceHours={sliceHours}
+            onChangeSliceHours={setSliceHours}
+          />
+        </div>
+      ) : null}
+
+      {hourlyQuery.data ? <HourlyTable hourly={hourlyQuery.data} sliceHours={sliceHours} /> : null}
     </section>
   );
 }

@@ -38,10 +38,14 @@ const CURRENT_VARIABLES = [
 ].join(",");
 
 // Hourly variables piggy-backed on the bundle request so we can fill the
-// fields that the `current` block doesn't expose.
-const HOURLY_FOR_CURRENT = ["precipitation_probability", "soil_moisture_0_to_1cm", "uv_index"].join(
-  ",",
-);
+// fields that the `current` block doesn't expose AND aggregate a per-day
+// humidity mean (Open-Meteo's daily endpoint has no humidity figure).
+const HOURLY_FOR_CURRENT = [
+  "precipitation_probability",
+  "relative_humidity_2m",
+  "soil_moisture_0_to_1cm",
+  "uv_index",
+].join(",");
 
 // Hourly variables exposed by `getHourly` (drill-down for a specific day).
 const HOURLY_VARIABLES = [
@@ -229,6 +233,11 @@ function mapDaily(data: OpenMeteoResponse): DailyForecast[] {
   if (!daily?.time) return [];
   const dates = daily.time;
 
+  // Open-Meteo's daily endpoint has no humidity figure, but we pull
+  // `relative_humidity_2m` in the hourly piggy-back already — so we compute
+  // the daily mean here. Free aggregation, no extra HTTP call.
+  const humidityMeanByDate = aggregateHumidityByDate(data.hourly);
+
   return dates.map((date, i) => ({
     date,
     temperatureMin: daily.temperature_2m_min?.[i] ?? null,
@@ -237,11 +246,33 @@ function mapDaily(data: OpenMeteoResponse): DailyForecast[] {
     precipitationProbabilityMax: daily.precipitation_probability_max?.[i] ?? null,
     windSpeedMax: daily.wind_speed_10m_max?.[i] ?? null,
     windDirectionDominant: daily.wind_direction_10m_dominant?.[i] ?? null,
-    // Open-Meteo does not expose a daily humidity mean. Leaving it null is
-    // honest; aggregating from hourly is a Phase 4 polish item.
-    humidityMean: null,
+    humidityMean: humidityMeanByDate.get(date) ?? null,
     weatherCode: daily.weather_code?.[i] ?? null,
   }));
+}
+
+function aggregateHumidityByDate(hourly: OpenMeteoHourly | undefined): Map<string, number> {
+  const result = new Map<string, number>();
+  const times = hourly?.time;
+  const values = hourly?.relative_humidity_2m;
+  if (!times || !values) return result;
+
+  const sumsByDate = new Map<string, { sum: number; count: number }>();
+  for (let i = 0; i < times.length; i += 1) {
+    const time = times[i];
+    const value = values[i];
+    if (!time || value === null || value === undefined) continue;
+    const date = time.slice(0, 10);
+    const acc = sumsByDate.get(date) ?? { sum: 0, count: 0 };
+    acc.sum += value;
+    acc.count += 1;
+    sumsByDate.set(date, acc);
+  }
+
+  for (const [date, { sum, count }] of sumsByDate) {
+    result.set(date, sum / count);
+  }
+  return result;
 }
 
 function mapHourly(data: OpenMeteoResponse): HourlyForecast[] {
