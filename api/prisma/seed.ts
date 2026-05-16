@@ -17,7 +17,6 @@ async function main() {
       preferences: {
         create: {
           temperatureUnit: "celsius",
-          preferredProvider: "open-meteo",
         },
       },
     },

@@ -102,7 +102,7 @@ export function ProviderModelSwitcher({ selection, onChange }: ProviderModelSwit
       >
         Source
       </label>
-      <div className="sm:min-w-[16rem] sm:flex-1 sm:max-w-sm">
+      <div className="min-w-0 sm:min-w-[16rem] sm:flex-1 sm:max-w-sm">
         <Select
           value={currentValue}
           onValueChange={(value) => onChange(decodeSelection(value))}

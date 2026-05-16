@@ -7,7 +7,6 @@ import {
 } from "@agriwatch/shared";
 import type { FastifyPluginAsyncZod } from "fastify-type-provider-zod";
 import { z } from "zod";
-import { getCurrentUserIdOrThrow } from "../../auth/interface/current-user.ts";
 import { requireAuth } from "../../auth/interface/require-auth.middleware.ts";
 import type { GetCurrentAndDailyUseCase } from "../application/get-current-and-daily.usecase.ts";
 import type { GetHourlyUseCase } from "../application/get-hourly.usecase.ts";
@@ -60,10 +59,8 @@ export function createWeatherRoutes(deps: Deps): FastifyPluginAsyncZod {
         },
       },
       async (request, reply) => {
-        const userId = getCurrentUserIdOrThrow(request);
         try {
           const bundle = await deps.getCurrentAndDailyUseCase({
-            userId,
             latitude: request.query.lat,
             longitude: request.query.lng,
             days: request.query.days,
@@ -103,10 +100,8 @@ export function createWeatherRoutes(deps: Deps): FastifyPluginAsyncZod {
         },
       },
       async (request, reply) => {
-        const userId = getCurrentUserIdOrThrow(request);
         try {
           const hours = await deps.getHourlyUseCase({
-            userId,
             latitude: request.query.lat,
             longitude: request.query.lng,
             date: request.query.date,

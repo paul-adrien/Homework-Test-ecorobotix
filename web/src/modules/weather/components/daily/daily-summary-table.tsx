@@ -1,7 +1,8 @@
 import type { DailyForecast } from "@agriwatch/shared";
 import { Droplet, ThermometerSun, Umbrella, Wind } from "lucide-react";
 import { useEffect, useRef } from "react";
-import { formatNumber, formatTempRange } from "../../lib/format.ts";
+import { useTemperatureUnit } from "@/modules/preferences/hooks/use-temperature-unit.ts";
+import { formatNumber } from "../../lib/format.ts";
 import {
   getHumidityTier,
   getPrecipTier,
@@ -36,6 +37,7 @@ type DailySummaryTableProps = Readonly<{
  */
 export function DailySummaryTable({ daily, selectedDate, onSelectDate }: DailySummaryTableProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const { symbol: tempSymbol, formatTempRange } = useTemperatureUnit();
 
   // Keep the selected day-column visible inside the table's own horizontal
   // scroller, without ever touching the page's vertical scroll. The browser's
@@ -86,7 +88,7 @@ export function DailySummaryTable({ daily, selectedDate, onSelectDate }: DailySu
           <MetricRow
             icon={ThermometerSun}
             label="Temp"
-            unit="°C"
+            unit={tempSymbol}
             cells={daily.map((day) => ({
               date: day.date,
               tier: getTempTier(day.temperatureMin, day.temperatureMax),

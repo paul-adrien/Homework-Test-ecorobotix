@@ -3,58 +3,45 @@ import {
   WeatherProviderModelNotAvailable,
   WeatherProviderNotAvailable,
 } from "../../domain/weather.errors.ts";
-import {
-  buildFakeProvider,
-  buildHourlyForecast,
-  createInMemoryUserPreferencesReader,
-} from "../../test-fakes.ts";
+import { buildFakeProvider, buildHourlyForecast } from "../../test-fakes.ts";
 import { createGetHourlyUseCase } from "../get-hourly.usecase.ts";
 
 describe("getHourly use case", () => {
   it("forwards the latitude, longitude and date to the resolved provider", async () => {
     const openMeteo = buildFakeProvider({ id: "open-meteo" });
     const registry = new Map([["open-meteo" as const, openMeteo]]);
-    const userPreferencesReader = createInMemoryUserPreferencesReader();
 
-    const useCase = createGetHourlyUseCase({ registry, userPreferencesReader });
-    await useCase({
-      userId: "user-1",
-      latitude: 47.5,
-      longitude: 7.5,
-      date: "2026-05-20",
-    });
+    const useCase = createGetHourlyUseCase({ registry });
+    await useCase({ latitude: 47.5, longitude: 7.5, date: "2026-05-20" });
 
     expect(openMeteo.spies.getHourly).toHaveBeenCalledWith(47.5, 7.5, "2026-05-20", {
       model: undefined,
     });
   });
 
-  it("falls back to the user's preferred provider when no provider is pinned", async () => {
+  it("falls back to open-meteo when the request does not pin a provider", async () => {
     const openMeteo = buildFakeProvider({ id: "open-meteo" });
     const yrNo = buildFakeProvider({ id: "yr-no" });
     const registry = new Map([
       ["open-meteo" as const, openMeteo],
       ["yr-no" as const, yrNo],
     ]);
-    const userPreferencesReader = createInMemoryUserPreferencesReader({ "user-1": "yr-no" });
 
-    const useCase = createGetHourlyUseCase({ registry, userPreferencesReader });
-    await useCase({ userId: "user-1", latitude: 47.5, longitude: 7.5, date: "2026-05-20" });
+    const useCase = createGetHourlyUseCase({ registry });
+    await useCase({ latitude: 47.5, longitude: 7.5, date: "2026-05-20" });
 
-    expect(yrNo.spies.getHourly).toHaveBeenCalledTimes(1);
-    expect(openMeteo.spies.getHourly).not.toHaveBeenCalled();
+    expect(openMeteo.spies.getHourly).toHaveBeenCalledTimes(1);
+    expect(yrNo.spies.getHourly).not.toHaveBeenCalled();
   });
 
   it("throws WeatherProviderNotAvailable when the resolved provider is unknown", async () => {
     const openMeteo = buildFakeProvider({ id: "open-meteo" });
     const registry = new Map([["open-meteo" as const, openMeteo]]);
-    const userPreferencesReader = createInMemoryUserPreferencesReader();
 
-    const useCase = createGetHourlyUseCase({ registry, userPreferencesReader });
+    const useCase = createGetHourlyUseCase({ registry });
 
     await expect(
       useCase({
-        userId: "user-1",
         latitude: 47.5,
         longitude: 7.5,
         date: "2026-05-20",
@@ -66,22 +53,20 @@ describe("getHourly use case", () => {
   it("forwards a valid `model` to the provider", async () => {
     const openMeteo = buildFakeProvider({
       id: "open-meteo",
-      models: [{ id: "ecmwf_ifs04", displayName: "ECMWF" }],
+      models: [{ id: "ecmwf_ifs025", displayName: "ECMWF" }],
     });
     const registry = new Map([["open-meteo" as const, openMeteo]]);
-    const userPreferencesReader = createInMemoryUserPreferencesReader();
 
-    const useCase = createGetHourlyUseCase({ registry, userPreferencesReader });
+    const useCase = createGetHourlyUseCase({ registry });
     await useCase({
-      userId: "user-1",
       latitude: 47.5,
       longitude: 7.5,
       date: "2026-05-20",
-      model: "ecmwf_ifs04",
+      model: "ecmwf_ifs025",
     });
 
     expect(openMeteo.spies.getHourly).toHaveBeenCalledWith(47.5, 7.5, "2026-05-20", {
-      model: "ecmwf_ifs04",
+      model: "ecmwf_ifs025",
     });
   });
 
@@ -91,13 +76,11 @@ describe("getHourly use case", () => {
       models: [{ id: "best_match", displayName: "Best match" }],
     });
     const registry = new Map([["open-meteo" as const, openMeteo]]);
-    const userPreferencesReader = createInMemoryUserPreferencesReader();
 
-    const useCase = createGetHourlyUseCase({ registry, userPreferencesReader });
+    const useCase = createGetHourlyUseCase({ registry });
 
     await expect(
       useCase({
-        userId: "user-1",
         latitude: 47.5,
         longitude: 7.5,
         date: "2026-05-20",
@@ -114,15 +97,9 @@ describe("getHourly use case", () => {
     ];
     const openMeteo = buildFakeProvider({ hourly });
     const registry = new Map([["open-meteo" as const, openMeteo]]);
-    const userPreferencesReader = createInMemoryUserPreferencesReader();
 
-    const useCase = createGetHourlyUseCase({ registry, userPreferencesReader });
-    const result = await useCase({
-      userId: "user-1",
-      latitude: 47.5,
-      longitude: 7.5,
-      date: "2026-05-20",
-    });
+    const useCase = createGetHourlyUseCase({ registry });
+    const result = await useCase({ latitude: 47.5, longitude: 7.5, date: "2026-05-20" });
 
     expect(result).toBe(hourly);
   });

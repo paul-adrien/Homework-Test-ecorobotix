@@ -193,7 +193,6 @@ homework_ecorobotix/
 │   │   │   #     domain/weather.errors.ts            # WeatherProviderNotAvailable / FetchFailed / ModelNotAvailable
 │   │   │   #     ports/
 │   │   │   #       weather-provider.ts                # the WeatherProvider port (2 methods + options bag)
-│   │   │   #       user-preferences-reader.ts         # read port for the preferredProvider field
 │   │   │   #     application/
 │   │   │   #       resolve-provider.ts                # resolve provider id + assert model is available
 │   │   │   #       get-current-and-daily.usecase.ts
@@ -203,9 +202,8 @@ homework_ecorobotix/
 │   │   │   #       open-meteo.provider.ts             # adapter, fetch injected
 │   │   │   #       yr-no.provider.ts                  # adapter with its own HTTP-aware cache
 │   │   │   #       cached-provider.ts                 # generic LRU+TTL decorator (used for open-meteo only)
-│   │   │   #       user-preferences-reader.prisma.ts
 │   │   │   #     interface/weather.routes.ts          # GET /weather, /weather/hourly, /weather/providers
-│   │   │   #     test-fakes.ts                        # in-memory user-prefs reader, fake provider
+│   │   │   #     test-fakes.ts                        # fake provider, fixtures
 │   │   │   #     weather.module.ts
 │   │   ├── shared/                     # Cross-cutting infrastructure
 │   │   │   └── db/
@@ -330,8 +328,7 @@ Build the project in this order. Do not skip ahead; each phase relies on the pre
    - `GET /api/weather?lat&lng&days?&provider?&model?` → `{ current, daily }`
    - `GET /api/weather/hourly?lat&lng&date&provider?&model?` → `HourlyForecast[]`
    - `GET /api/weather/providers` → `WeatherProviderInfo[]` (with `models` flattened by the frontend switcher into 5 entries: 4 Open-Meteo models + Yr.no).
-8. `UserPreferencesReader` mini-port + Prisma adapter inside the weather module so the use cases can read `preferredProvider` without coupling to a full preferences module (Phase 5 will spawn the real bounded context with write paths).
-9. `@fastify/swagger` + `fastify-type-provider-zod` were already wired in Phase 0; the new routes auto-document at `/docs`.
+8. `@fastify/swagger` + `fastify-type-provider-zod` were already wired in Phase 0; the new routes auto-document at `/docs`.
 10. Tests: cache hit/miss/expiry (real short TTLs, not fake timers), per-adapter mapping with representative fixtures, model validation, HTTP-aware revalidation (304 path), route mapping for the domain errors. ~75 weather tests on top of the existing API tests.
 11. Commits split into 3.A skeleton+cache → 3.B Open-Meteo → 3.C use cases+routes+module (+ shared `test-app` helper for the integration tests) → 3.D Yr.no → 3.E multi-models.
 
@@ -349,12 +346,14 @@ Build the project in this order. Do not skip ahead; each phase relies on the pre
 11. Tests (Phase 4.F): unit conversion, chip tier resolution, slice aggregation edge cases, provider switcher render with N entries.
 12. Commits: 4.A hooks → 4.B daily v1 → 4.C hourly + transposed daily + slice toggle + per-file split → 4.D provider switcher → 4.E polish → 4.F RTL tests.
 
-### Phase 5 — Preferences + Settings
-1. Implement `GET /api/me/preferences` and `PATCH /api/me/preferences`.
-2. Build the Settings page in `web/`: temperature unit toggle, default site selector, preferred provider selector.
-3. Wire the preferences via TanStack Query mutations with optimistic update.
-4. Tests: preferences persistence, default unit propagation.
-5. Commit: `feat(preferences): user settings`.
+### Phase 5 — Preferences + US4/US6 UI
+1. `preferences` bounded context backend: `GET /api/me/preferences` + `PATCH /api/me/preferences` returning `{ temperatureUnit, defaultSiteId }`. Site-ownership read port validates the optional `defaultSiteId` before write (→ 400 instead of leaking a Prisma FK error). DDD-light: domain errors, ports, application use cases, Prisma adapters, fakes, tests (~17 tests).
+2. Frontend hooks: `usePreferences()` (TanStack Query, 10-min staleTime) + `useUpdatePreferencesMutation()` (optimistic merge on the cached blob, restore-on-error).
+3. US4 (delete site) + US6 (default site) wired on the SiteRow: three sibling controls (select / heart toggle / two-tap delete). Heart is filled when the row matches `defaultSiteId`; click toggles to `null` or this site. Delete button is icon-only — first click arms (Check icon, red fill), outside-click cancels, second click deletes.
+4. Dashboard auto-loads the default site on first selection (`selectedSiteId === null`); once the user picks explicitly, preference changes don't hijack the view.
+5. US5 (temperature unit): segmented `°C / °F` toggle next to the in-section provider switcher. `useTemperatureUnit()` hook returns `{ unit, symbol, formatTemp, formatTempRange }` — daily and hourly tables consume it directly so flipping units re-renders every temperature without a refetch.
+6. The provider preference deliberately stays per-session via the in-section switcher only — no persisted `preferredProvider`, no UI for it. Cross-checking providers is the core feature, not a setting.
+7. Commits: 5.A backend → 5.B US4/US6 UI → 5.C temp unit toggle.
 
 ### Phase 6 — Tests + Polish
 1. Add Playwright with 2 happy-path E2E scenarios (see §11).
@@ -527,14 +526,14 @@ model Site {
 }
 
 model UserPreferences {
-  id                String   @id @default(cuid())
-  userId            String   @unique
-  temperatureUnit   String   @default("celsius")        // "celsius" | "fahrenheit"
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  temperatureUnit String   @default("celsius")        // "celsius" | "fahrenheit"
   defaultSiteId   String?                              // nullable, no auto-fallback on delete
-  preferredProvider String   @default("open-meteo")
-  updatedAt         DateTime @updatedAt
+  updatedAt       DateTime @updatedAt
 
-  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  defaultSite     Site?    @relation(fields: [defaultSiteId], references: [id], onDelete: SetNull)
 }
 
 ```

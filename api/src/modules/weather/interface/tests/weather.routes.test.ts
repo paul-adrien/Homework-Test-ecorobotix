@@ -57,7 +57,6 @@ describe("GET /api/weather", () => {
     expect(res.statusCode).toBe(200);
     expect(res.json()).toEqual(bundle);
     expect(deps.getCurrentAndDailyUseCase).toHaveBeenCalledWith({
-      userId,
       latitude: 47.5,
       longitude: 7.5,
       days: 10,
@@ -188,7 +187,6 @@ describe("GET /api/weather/hourly", () => {
     expect(res.statusCode).toBe(200);
     expect(res.json()).toEqual(hours);
     expect(deps.getHourlyUseCase).toHaveBeenCalledWith({
-      userId,
       latitude: 47.5,
       longitude: 7.5,
       date: "2026-05-20",

@@ -19,13 +19,3 @@ export function formatNumber(value: number | null, decimals = 0): string {
   if (value === null) return EM_DASH;
   return value.toFixed(decimals);
 }
-
-/**
- * "12/22" — daily min/max temperature range, no unit and no spaces around
- * the slash so the range stays compact enough to fit on one line inside a
- * narrow chip on mobile.
- */
-export function formatTempRange(min: number | null, max: number | null): string {
-  if (min === null && max === null) return EM_DASH;
-  return `${formatNumber(min)}/${formatNumber(max)}`;
-}

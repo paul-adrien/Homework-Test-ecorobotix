@@ -1,6 +1,7 @@
 import type { SitePublic } from "@agriwatch/shared";
 import { AlertCircle } from "lucide-react";
 import { useEffect, useState } from "react";
+import { TemperatureUnitToggle } from "@/modules/preferences/components/temperature-unit-toggle.tsx";
 import { useCurrentAndDaily } from "../hooks/use-current-and-daily.ts";
 import { useHourly } from "../hooks/use-hourly.ts";
 import { useProviders } from "../hooks/use-providers.ts";
@@ -44,9 +45,9 @@ export function ForecastSection({ site }: ForecastSectionProps) {
 
   // Auto-pin the first available (provider, model) entry once the providers
   // list resolves. The backend would have served the same data via its own
-  // fallback to the user's preferred provider, but mirroring the choice in
-  // the trigger ensures the agent can always read what's currently displayed
-  // — no silent "default in use, switcher empty" mismatch.
+  // fallback, but mirroring the choice in the trigger ensures the agent can
+  // always read what's currently displayed — no silent "default in use,
+  // switcher empty" mismatch.
   useEffect(() => {
     if (selection !== null) return;
     const providers = providersQuery.data;
@@ -84,7 +85,12 @@ export function ForecastSection({ site }: ForecastSectionProps) {
       aria-label={`Forecast for ${site.label}`}
       className="flex w-full flex-1 flex-col gap-3"
     >
-      <ProviderModelSwitcher selection={selection} onChange={setSelection} />
+      <div className="flex flex-row items-end gap-3">
+        <div className="min-w-0 flex-1">
+          <ProviderModelSwitcher selection={selection} onChange={setSelection} />
+        </div>
+        <TemperatureUnitToggle />
+      </div>
 
       {bundleQuery.isPending ? <DailySummaryTableSkeleton days={DEFAULT_DAYS} /> : null}
 

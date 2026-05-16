@@ -14,10 +14,7 @@ describe("updatePreferences use case", () => {
   });
 
   it("updates only the fields present in the partial input", async () => {
-    await preferencesRepository.upsert("user-1", {
-      temperatureUnit: "celsius",
-      preferredProvider: "open-meteo",
-    });
+    await preferencesRepository.upsert("user-1", { temperatureUnit: "celsius" });
     const updatePreferences = createUpdatePreferencesUseCase({
       preferencesRepository,
       siteOwnershipReader: createFakeSiteOwnershipReader([]),
@@ -28,7 +25,6 @@ describe("updatePreferences use case", () => {
     expect(result).toEqual({
       temperatureUnit: "fahrenheit",
       defaultSiteId: null,
-      preferredProvider: "open-meteo",
     });
   });
 
@@ -76,10 +72,7 @@ describe("updatePreferences use case", () => {
   });
 
   it("leaves unspecified fields unchanged on an existing row", async () => {
-    await preferencesRepository.upsert("user-1", {
-      temperatureUnit: "fahrenheit",
-      preferredProvider: "yr-no",
-    });
+    await preferencesRepository.upsert("user-1", { temperatureUnit: "fahrenheit" });
     const updatePreferences = createUpdatePreferencesUseCase({
       preferencesRepository,
       siteOwnershipReader: createFakeSiteOwnershipReader([{ siteId: "site-1", userId: "user-1" }]),
@@ -88,7 +81,6 @@ describe("updatePreferences use case", () => {
     const result = await updatePreferences("user-1", { defaultSiteId: "site-1" });
 
     expect(result.temperatureUnit).toBe("fahrenheit");
-    expect(result.preferredProvider).toBe("yr-no");
     expect(result.defaultSiteId).toBe("site-1");
   });
 });

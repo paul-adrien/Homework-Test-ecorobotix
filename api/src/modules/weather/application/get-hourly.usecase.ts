@@ -1,5 +1,4 @@
 import type { HourlyForecast, WeatherProviderId } from "@agriwatch/shared";
-import type { UserPreferencesReader } from "../ports/user-preferences-reader.ts";
 import {
   assertModelAvailable,
   resolveProvider,
@@ -8,11 +7,9 @@ import {
 
 type Deps = {
   registry: WeatherProviderRegistry;
-  userPreferencesReader: UserPreferencesReader;
 };
 
 export type GetHourlyInput = Readonly<{
-  userId: string;
   latitude: number;
   longitude: number;
   date: string;
@@ -26,14 +23,9 @@ export type GetHourlyInput = Readonly<{
  * forecast on a given day — typically the date the user just tapped on the
  * daily chart.
  */
-export function createGetHourlyUseCase({ registry, userPreferencesReader }: Deps) {
+export function createGetHourlyUseCase({ registry }: Deps) {
   return async function getHourly(input: GetHourlyInput): Promise<HourlyForecast[]> {
-    const provider = await resolveProvider(
-      registry,
-      userPreferencesReader,
-      input.userId,
-      input.providerId,
-    );
+    const provider = resolveProvider(registry, input.providerId);
     assertModelAvailable(provider, input.model);
     return provider.getHourly(input.latitude, input.longitude, input.date, {
       model: input.model,

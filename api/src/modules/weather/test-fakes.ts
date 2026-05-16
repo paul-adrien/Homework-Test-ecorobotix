@@ -5,7 +5,6 @@ import type {
   WeatherProviderModel,
 } from "@agriwatch/shared";
 import { vi } from "vitest";
-import type { UserPreferencesReader } from "./ports/user-preferences-reader.ts";
 import type { WeatherProvider } from "./ports/weather-provider.ts";
 
 export function buildCurrentAndDaily(over: Partial<CurrentAndDaily> = {}): CurrentAndDaily {
@@ -85,16 +84,5 @@ export function buildFakeProvider(options: FakeProviderOptions = {}): WeatherPro
     getCurrentAndDaily,
     getHourly,
     spies: { getCurrentAndDaily, getHourly },
-  };
-}
-
-export function createInMemoryUserPreferencesReader(
-  seed: Record<string, WeatherProviderId> = {},
-): UserPreferencesReader {
-  const store = new Map<string, WeatherProviderId>(Object.entries(seed));
-  return {
-    async getPreferredProvider(userId) {
-      return store.get(userId) ?? null;
-    },
   };
 }

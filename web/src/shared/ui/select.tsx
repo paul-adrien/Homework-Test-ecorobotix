@@ -14,7 +14,7 @@ export const SelectTrigger = forwardRef<
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
-      "flex h-10 w-full items-center justify-between gap-2 rounded-md border border-[var(--color-border-subtle)] bg-[var(--color-surface)] px-3 py-2 text-left text-sm",
+      "flex h-10 w-full min-w-0 items-center justify-between gap-2 rounded-md border border-[var(--color-border-subtle)] bg-[var(--color-surface)] px-3 py-2 text-left text-sm",
       "text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)]",
       "hover:bg-[var(--color-surface-alt)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary)]",
       "disabled:cursor-not-allowed disabled:opacity-50",
@@ -23,7 +23,10 @@ export const SelectTrigger = forwardRef<
     )}
     {...props}
   >
-    {children}
+    {/* min-w-0 + truncate so a long selection label (e.g. "Open-Meteo ·
+        Best match (auto, region-aware)") shrinks instead of pushing the
+        chevron off the trigger or overflowing the container. */}
+    <span className="min-w-0 flex-1 truncate">{children}</span>
     <SelectPrimitive.Icon asChild>
       <ChevronDown className="size-4 shrink-0 opacity-60" aria-hidden="true" />
     </SelectPrimitive.Icon>

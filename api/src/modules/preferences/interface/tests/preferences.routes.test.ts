@@ -13,7 +13,6 @@ describe("preferences HTTP routes", () => {
   const defaults = {
     temperatureUnit: "celsius",
     defaultSiteId: null,
-    preferredProvider: "open-meteo",
   } as const;
 
   beforeEach(async () => {
@@ -126,18 +125,6 @@ describe("preferences HTTP routes", () => {
         url: "/api/me/preferences",
         cookies: { session: sessionCookie },
         payload: { temperatureUnit: "kelvin" },
-      });
-
-      expect(res.statusCode).toBe(400);
-      expect(fakeUpdate).not.toHaveBeenCalled();
-    });
-
-    it("rejects unknown provider ids at the Zod boundary (400)", async () => {
-      const res = await app.inject({
-        method: "PATCH",
-        url: "/api/me/preferences",
-        cookies: { session: sessionCookie },
-        payload: { preferredProvider: "bogus" },
       });
 
       expect(res.statusCode).toBe(400);

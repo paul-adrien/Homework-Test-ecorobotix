@@ -5,7 +5,6 @@ import type { SiteOwnershipReader } from "./ports/site-ownership-reader.ts";
 const DEFAULTS: UserPreferences = {
   temperatureUnit: "celsius",
   defaultSiteId: null,
-  preferredProvider: "open-meteo",
 };
 
 /**
@@ -26,7 +25,6 @@ export function createInMemoryPreferencesRepository(): PreferencesRepository {
         temperatureUnit: input.temperatureUnit ?? current.temperatureUnit,
         defaultSiteId:
           input.defaultSiteId === undefined ? current.defaultSiteId : input.defaultSiteId,
-        preferredProvider: input.preferredProvider ?? current.preferredProvider,
       };
       store.set(userId, next);
       return next;

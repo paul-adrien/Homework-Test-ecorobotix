@@ -16,18 +16,13 @@ describe("getPreferences use case", () => {
     expect(result).toEqual({
       temperatureUnit: "celsius",
       defaultSiteId: null,
-      preferredProvider: "open-meteo",
     });
   });
 
   it("returns the existing row on subsequent reads instead of re-creating defaults", async () => {
-    await preferencesRepository.upsert("user-1", {
-      temperatureUnit: "fahrenheit",
-      preferredProvider: "yr-no",
-    });
+    await preferencesRepository.upsert("user-1", { temperatureUnit: "fahrenheit" });
     const result = await getPreferences("user-1");
     expect(result.temperatureUnit).toBe("fahrenheit");
-    expect(result.preferredProvider).toBe("yr-no");
   });
 
   it("scopes reads per user", async () => {

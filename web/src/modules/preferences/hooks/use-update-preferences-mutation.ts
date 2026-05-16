@@ -26,7 +26,6 @@ export function useUpdatePreferencesMutation() {
           temperatureUnit: input.temperatureUnit ?? previous.temperatureUnit,
           defaultSiteId:
             input.defaultSiteId === undefined ? previous.defaultSiteId : input.defaultSiteId,
-          preferredProvider: input.preferredProvider ?? previous.preferredProvider,
         };
         queryClient.setQueryData(preferencesQueryKey, next);
       }

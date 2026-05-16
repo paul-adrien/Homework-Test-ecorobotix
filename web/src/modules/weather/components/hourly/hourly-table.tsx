@@ -1,6 +1,7 @@
 import type { HourlyForecast } from "@agriwatch/shared";
 import { Droplet, ThermometerSun, Umbrella, Wind } from "lucide-react";
 import { useMemo } from "react";
+import { useTemperatureUnit } from "@/modules/preferences/hooks/use-temperature-unit.ts";
 import { aggregateToSlices, type SliceHours } from "../../lib/slice-hourly.ts";
 import { ColumnHeader } from "../shared/column-header.tsx";
 import { HourlyRow } from "./hourly-row.tsx";
@@ -36,6 +37,7 @@ export function HourlyTable({ hourly, sliceHours, selectedDate }: HourlyTablePro
     const fromHour = selectedDate === todayUtc ? now.getUTCHours() : undefined;
     return aggregateToSlices(hourly, sliceHours, { fromHour });
   }, [hourly, sliceHours, selectedDate]);
+  const { symbol: tempSymbol } = useTemperatureUnit();
 
   return (
     <div className="rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-surface)]">
@@ -52,7 +54,7 @@ export function HourlyTable({ hourly, sliceHours, selectedDate }: HourlyTablePro
             <th scope="col" className="px-3 py-2.5 text-left font-medium">
               Time
             </th>
-            <ColumnHeader icon={ThermometerSun} label="Temp" unit="°C" />
+            <ColumnHeader icon={ThermometerSun} label="Temp" unit={tempSymbol} />
             <ColumnHeader icon={Umbrella} label="Precip" unit="mm" />
             <ColumnHeader icon={Wind} label="Wind" unit="km/h" />
             <ColumnHeader icon={Droplet} label="Humidity" unit="%" />

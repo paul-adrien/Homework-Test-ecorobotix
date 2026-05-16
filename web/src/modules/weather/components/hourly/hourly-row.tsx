@@ -1,3 +1,4 @@
+import { useTemperatureUnit } from "@/modules/preferences/hooks/use-temperature-unit.ts";
 import { formatNumber } from "../../lib/format.ts";
 import {
   getHumidityTier,
@@ -14,13 +15,17 @@ type HourlyRowProps = Readonly<{ slice: HourSlice }>;
 /**
  * One row of the hourly drill-down table: the slice's start hour as a row
  * header, then a `<ChipCell>` per metric. Same chip gradient as the daily
- * table so the visual scale carries over.
+ * table so the visual scale carries over. Temperatures are converted at
+ * display time to the user's preferred unit via `useTemperatureUnit`; the
+ * tier still uses the raw Celsius value so the colour scale stays
+ * consistent across units (frost-blue at <0 °C / 32 °F is the same chip).
  */
 export function HourlyRow({ slice }: HourlyRowProps) {
   const tempTier = getTempTier(slice.temperatureMean, slice.temperatureMean);
   const precipTier = getPrecipTier(slice.precipitationSum);
   const windTier = getWindTier(slice.windSpeedMax);
   const humidityTier = getHumidityTier(slice.humidityMean);
+  const { formatTemp } = useTemperatureUnit();
 
   return (
     <tr>
@@ -31,7 +36,7 @@ export function HourlyRow({ slice }: HourlyRowProps) {
         {slice.label}
       </th>
       <ChipCell metric="temp" tier={tempTier}>
-        {formatNumber(slice.temperatureMean)}
+        {formatTemp(slice.temperatureMean)}
       </ChipCell>
       <ChipCell metric="precip" tier={precipTier}>
         {formatNumber(slice.precipitationSum, 1)}
