@@ -120,6 +120,7 @@ describe("createYrNoProvider", () => {
           precipitationSum: 0.3,
           precipitationProbabilityMax: 20,
           windSpeedMax: 18, // max(3.4, 5) m/s × 3.6 = 18
+          windDirectionDominant: null, // Yr.no daily skips the circular mean
           humidityMean: 55,
           weatherCode: null,
         },
@@ -130,6 +131,7 @@ describe("createYrNoProvider", () => {
           precipitationSum: 0.5,
           precipitationProbabilityMax: 40,
           windSpeedMax: 7.2,
+          windDirectionDominant: null,
           humidityMean: 70,
           weatherCode: null,
         },

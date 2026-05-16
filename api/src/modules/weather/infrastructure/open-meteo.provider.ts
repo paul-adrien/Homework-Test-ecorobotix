@@ -60,6 +60,7 @@ const DAILY_VARIABLES = [
   "precipitation_sum",
   "precipitation_probability_max",
   "wind_speed_10m_max",
+  "wind_direction_10m_dominant",
   "weather_code",
 ].join(",");
 
@@ -94,6 +95,7 @@ type OpenMeteoDaily = {
   precipitation_sum?: Array<number | null>;
   precipitation_probability_max?: Array<number | null>;
   wind_speed_10m_max?: Array<number | null>;
+  wind_direction_10m_dominant?: Array<number | null>;
   weather_code?: Array<number | null>;
 };
 
@@ -234,6 +236,7 @@ function mapDaily(data: OpenMeteoResponse): DailyForecast[] {
     precipitationSum: daily.precipitation_sum?.[i] ?? null,
     precipitationProbabilityMax: daily.precipitation_probability_max?.[i] ?? null,
     windSpeedMax: daily.wind_speed_10m_max?.[i] ?? null,
+    windDirectionDominant: daily.wind_direction_10m_dominant?.[i] ?? null,
     // Open-Meteo does not expose a daily humidity mean. Leaving it null is
     // honest; aggregating from hourly is a Phase 4 polish item.
     humidityMean: null,

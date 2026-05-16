@@ -43,6 +43,13 @@ export const dailyForecastSchema = z.object({
   precipitationSum: z.number().nullable(),
   precipitationProbabilityMax: z.number().nullable(),
   windSpeedMax: z.number().nullable(),
+  /**
+   * Dominant wind direction over the day, in degrees (0 = wind coming
+   * FROM the north, meteorological convention). Providers that don't
+   * expose a daily dominant figure (e.g. Yr.no, where it would require
+   * a circular mean over the hourly timeseries) leave this `null`.
+   */
+  windDirectionDominant: z.number().nullable(),
   humidityMean: z.number().nullable(),
   weatherCode: z.number().nullable(),
 });

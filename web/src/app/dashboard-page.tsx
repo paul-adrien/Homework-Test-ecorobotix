@@ -5,7 +5,7 @@ import { MobileSiteSelector } from "@/modules/sites/components/mobile-site-selec
 import { SitesMap } from "@/modules/sites/components/sites-map.tsx";
 import { SitesSidebar } from "@/modules/sites/components/sites-sidebar.tsx";
 import { useSites } from "@/modules/sites/hooks/use-sites.ts";
-import { ForecastPlaceholder } from "@/modules/weather/components/forecast-placeholder.tsx";
+import { ForecastSection } from "@/modules/weather/components/forecast-section.tsx";
 import { useIsMobile } from "@/shared/lib/use-is-mobile.ts";
 import { DashboardLayout } from "./dashboard-layout.tsx";
 
@@ -19,7 +19,7 @@ import { DashboardLayout } from "./dashboard-layout.tsx";
  * only instantiated in the branch that is actually visible — otherwise
  * Leaflet would mount in a `display:none` subtree and render blank):
  *  - desktop (`sm:` and up): `SitesSidebar` left, map (h-80) above the
- *    `ForecastPlaceholder` (flex-1) in the main column.
+ *    `ForecastSection` (flex-1, daily summary table) in the main column.
  *  - mobile (`< sm`): the forecast is the primary content (takes the full
  *    available height). A compact `MobileSiteSelector` and a "Map" button
  *    share the top row — tapping "Map" opens the multi-site map in a
@@ -75,7 +75,7 @@ export function DashboardPage() {
               onSelect={setSelectedSiteId}
             />
           </div>
-          {selectedSite ? <ForecastPlaceholder site={selectedSite} /> : null}
+          {selectedSite ? <ForecastSection site={selectedSite} /> : null}
         </div>
       </DashboardLayout>
     );
@@ -89,7 +89,7 @@ export function DashboardPage() {
           <div className="isolate relative h-80 overflow-hidden rounded-lg border border-[var(--color-border-subtle)]">
             <SitesMap sites={sites} selectedSiteId={selectedSiteId} onSelect={setSelectedSiteId} />
           </div>
-          {selectedSite ? <ForecastPlaceholder site={selectedSite} /> : null}
+          {selectedSite ? <ForecastSection site={selectedSite} /> : null}
         </div>
       </div>
     </DashboardLayout>

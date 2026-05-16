@@ -32,6 +32,7 @@ export function buildCurrentAndDaily(over: Partial<CurrentAndDaily> = {}): Curre
         precipitationSum: 1.2,
         precipitationProbabilityMax: 40,
         windSpeedMax: 18,
+        windDirectionDominant: 270,
         humidityMean: null,
         weatherCode: 2,
       },

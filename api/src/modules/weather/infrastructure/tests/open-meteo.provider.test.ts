@@ -45,6 +45,7 @@ describe("createOpenMeteoProvider", () => {
             precipitation_sum: [1.2, 0],
             precipitation_probability_max: [40, 5],
             wind_speed_10m_max: [18, 20],
+            wind_direction_10m_dominant: [270, 280],
             weather_code: [2, 1],
           },
         }),
@@ -76,6 +77,7 @@ describe("createOpenMeteoProvider", () => {
         precipitationSum: 1.2,
         precipitationProbabilityMax: 40,
         windSpeedMax: 18,
+        windDirectionDominant: 270,
         humidityMean: null,
         weatherCode: 2,
       });

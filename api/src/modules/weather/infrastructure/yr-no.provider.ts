@@ -248,6 +248,10 @@ function aggregateDaily(timeseries: YrNoTimeseries[]): DailyForecast[] {
       precipitationSum: precipitationContributors > 0 ? round1(precipitationSum) : null,
       precipitationProbabilityMax: probabilities.length ? Math.max(...probabilities) : null,
       windSpeedMax: windSpeedsKmh.length ? round1(Math.max(...windSpeedsKmh)) : null,
+      // Computing a dominant direction from the hourly entries requires a
+      // circular mean — out of scope for the MVP. Left null so the UI
+      // simply omits the wind arrow for Yr.no daily rows.
+      windDirectionDominant: null,
       humidityMean: humidities.length ? round1(mean(humidities)) : null,
       weatherCode: null,
     });

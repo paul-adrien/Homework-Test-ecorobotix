@@ -42,6 +42,7 @@ function buildDailyForecast(over: Partial<DailyForecast> = {}): DailyForecast {
     precipitationSum: 1.2,
     precipitationProbabilityMax: 40,
     windSpeedMax: 18,
+    windDirectionDominant: 270,
     humidityMean: 65,
     weatherCode: 2,
     ...over,
