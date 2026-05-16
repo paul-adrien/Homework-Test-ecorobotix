@@ -10,7 +10,8 @@
     "paths": {
       "@/*": ["./src/*"],
       "@shared": ["../shared/src/index.ts"],
-      "@shared/*": ["../shared/src/*"]
+      "@shared/*": ["../shared/src/*"],
+      "@agriwatch/shared": ["../shared/src/index.ts"]
     }
   },
   "include": ["src", "tests", "vite.config.ts", "vitest.config.ts", "playwright.config.ts"]

@@ -802,18 +802,17 @@ pnpm --filter api test src/weather/open-meteo.test.ts
 pnpm --filter web test src/features/sites/SiteCard.test.tsx
 ```
 
-**Resync `@agriwatch/shared` after adding an export**
-The `shared` package is consumed via `file:../shared`. Neither pnpm nor Vite re-syncs automatically when a new symbol is added to `shared/src/`. Symptoms: `TS2305: Module '@agriwatch/shared' has no exported member 'X'` (backend) or `Uncaught SyntaxError: The requested module ... does not provide an export named 'X'` (frontend at runtime).
-```bash
-# Re-link in the consumer packages
-rm -rf api/node_modules/@agriwatch/shared web/node_modules/@agriwatch/shared
-cd api && pnpm install
-cd ../web && pnpm install
+**Adding an export to `@agriwatch/shared`**
+Just add it. Vite + Vitest + the TS server read the source directly via path aliases (`@agriwatch/shared` → `../shared/src/index.ts`), so there is no node_modules cache to bust and no pre-bundling to purge — saving a file in `shared/src/` is reflected on the next reload.
 
-# Purge Vite's pre-bundled dep cache so the dev server re-optimises
-rm -rf web/node_modules/.vite
-# Then restart `pnpm dev`
-```
+The aliasing lives in three places, all kept in sync:
+- `web/vite.config.ts` (`resolve.alias`) — runtime
+- `web/vitest.config.ts` and `api/vitest.config.ts` (`resolve.alias`) — tests
+- `web/tsconfig.json` and `api/tsconfig.json` (`compilerOptions.paths`) — IDE / `tsc --noEmit`
+
+All three also dedupe `zod` so the schema (imported from `shared/`) and the consumer share the same `ZodError` class instance — without it, `err instanceof ZodError` would fail because pnpm hoists a separate `zod` copy per package.
+
+The `file:../shared` dep in each `package.json` stays only so `pnpm install` creates the symlink for tools that don't go through Vite/tsconfig paths (Biome, Prettier-via-Biome, etc.).
 
 ---
 

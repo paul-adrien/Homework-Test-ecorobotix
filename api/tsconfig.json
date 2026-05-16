@@ -8,7 +8,8 @@
     "paths": {
       "@/*": ["./src/*"],
       "@shared": ["../shared/src/index.ts"],
-      "@shared/*": ["../shared/src/*"]
+      "@shared/*": ["../shared/src/*"],
+      "@agriwatch/shared": ["../shared/src/index.ts"]
     }
   },
   "include": ["src", "tests", "prisma/seed.ts", "vitest.config.ts"]
