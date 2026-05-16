@@ -84,7 +84,7 @@ export type CurrentAndDaily = z.infer<typeof currentAndDailySchema>;
 
 /**
  * A numerical-weather-model offered by a provider (e.g. Open-Meteo's
- * `ecmwf_ifs04`, `icon_seamless`, etc.). Providers that don't let callers
+ * `ecmwf_ifs025`, `icon_seamless`, etc.). Providers that don't let callers
  * pick a model (like Yr.no, which serves a fixed internal blend) simply
  * omit the `models` field from their info.
  */

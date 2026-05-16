@@ -16,8 +16,8 @@ import type { WeatherProvider } from "../ports/weather-provider.ts";
  * Adding a new model = add an entry here, no other code change.
  */
 export const OPEN_METEO_MODELS: ReadonlyArray<WeatherProviderModel> = [
-  { id: "best_match", displayName: "Best match (auto)" },
-  { id: "ecmwf_ifs04", displayName: "ECMWF (European)" },
+  { id: "best_match", displayName: "Best match (auto, region-aware)" },
+  { id: "ecmwf_ifs025", displayName: "ECMWF (European)" },
   { id: "icon_seamless", displayName: "ICON (DWD · German)" },
   { id: "gfs_global", displayName: "GFS (US)" },
 ];

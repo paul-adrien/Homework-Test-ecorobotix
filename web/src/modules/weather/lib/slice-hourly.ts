@@ -19,6 +19,17 @@ export type HourSlice = Readonly<{
   humidityMean: number | null;
 }>;
 
+export type AggregateToSlicesOptions = Readonly<{
+  /**
+   * Drop slices that have entirely elapsed before this UTC hour (used to
+   * hide past entries when the agent looks at today — staring at "00 h
+   * 06 h 09 h" of this morning is noise, not signal). A slice survives if
+   * its end (`startHour + sliceHours`) is strictly after `fromHour`. Pass
+   * `undefined` (the default) to keep the full 24-hour grid.
+   */
+  fromHour?: number;
+}>;
+
 /**
  * Aggregate an hourly forecast into N slices of `sliceHours` hours each.
  * With `sliceHours = 3` the day breaks into 8 windows (default); with
@@ -36,10 +47,15 @@ export type HourSlice = Readonly<{
  * Empty slices (no hourly entry within range) are still emitted with all
  * metrics null, so the table renders a consistent N rows even on sparse
  * upstream data (e.g. Yr.no's longer-range 6h entries beyond day 2).
+ *
+ * When `options.fromHour` is set, fully-past slices are skipped — the
+ * slice straddling "now" is kept (its aggregation still spans the full
+ * window since the upstream data covers it).
  */
 export function aggregateToSlices(
   hourly: ReadonlyArray<HourlyForecast>,
   sliceHours: SliceHours = 3,
+  options: AggregateToSlicesOptions = {},
 ): HourSlice[] {
   const slicesPerDay = 24 / sliceHours;
   const slices: HourSlice[] = [];
@@ -47,6 +63,7 @@ export function aggregateToSlices(
   for (let i = 0; i < slicesPerDay; i += 1) {
     const startHour = i * sliceHours;
     const endHour = startHour + sliceHours;
+    if (options.fromHour !== undefined && endHour <= options.fromHour) continue;
     const entries = hourly.filter((entry) => {
       const hour = parseHourUtc(entry.time);
       return hour !== null && hour >= startHour && hour < endHour;

@@ -33,10 +33,11 @@ The brief defines 8 user stories. Each is translated below into a concrete, impl
 - Temperature unit follows the user's preference (Celsius/Fahrenheit). Convert at display time.
 
 ### US2. View an upcoming forecast for any given location
-- **Daily forecast over 7 days by default**, with a toggle to extend up to **14 days**.
-- **Drill-down on hourly forecast** when a day is clicked.
-- Display 4 toggleable metric series in a chart (Recharts): **Temperature, Precipitation, Wind, Humidity**.
-- Series can be turned on/off; multiple series can overlap on the chart.
+- **Daily forecast over 7 days**, displayed as a **transposed table**: days run across as columns, the four decision-driving metrics (**Temperature, Precipitation, Wind, Humidity**) stack as rows. Each cell carries a coloured chip graduated per metric so the agent reads risk by hue — temperature climbs cool-blue → green → amber → red, precipitation slate → cyan → blue → indigo, wind slate → amber → orange → red, humidity dry-amber → green → violet. Thresholds calibrated for agri decisions (frost <0°C, sustained heat >32°C, spray-wind limit at 25 km/h, mildew-friendly humidity >75%).
+- Days run as columns to keep horizontal scroll on mobile inside the table (the page keeps scrolling vertically). The sticky first column carries the metric labels (collapsed to icon-only on `< sm`).
+- Each day column header shows a weather hint icon (sun / cloud / rain / snowflake) derived from the day's dominant condition. Tapping anywhere in a day's column selects that day for the hourly drill-down below.
+- **Drill-down hourly table** appears under a `HourlyHeader` card that centres the selected date with prev/next arrows and a **3 h / 1 h segmented toggle** to flip slice granularity (8 broad windows vs every upstream entry). The hourly table mirrors the daily's chip language. Wind cells carry a small arrow rotated to point downwind (the direction sprayer drift travels).
+- A pivot away from the original Recharts multi-series chart plan: chips on a tabular grid scan faster than a line chart for the typical agri decision ("is this day OK to spray?") and degrade better to mobile.
 - Forecast is fetched from the **currently selected provider** (see Architecture §7.2).
 
 ### US3. Save sites I monitor regularly
@@ -95,7 +96,6 @@ The brief defines 8 user stories. Each is translated below into a concrete, impl
 | Schema validation | Zod | latest |
 | Backend cache | `lru-cache` (in-memory) | latest |
 | Map | Leaflet + react-leaflet + OpenStreetMap tiles | latest |
-| Charts | Recharts | latest |
 | Tests | Vitest + React Testing Library + Playwright | latest |
 | Linter / formatter | Biome | latest |
 | Git hooks | Husky + lint-staged + commitlint | latest |
@@ -119,8 +119,30 @@ homework_ecorobotix/
 │   │   │   │   ├── hooks/              # useCurrentUser, useLogin, useSignup
 │   │   │   │   ├── components/         # LoginForm, SignupForm
 │   │   │   │   └── pages/              # /login, /signup screens
-│   │   │   ├── sites/                # (Phase 2)
-│   │   │   ├── weather/                # (Phase 3)
+│   │   │   ├── sites/                  # CRUD + map + selector + create flow
+│   │   │   ├── geocoding/              # Nominatim search + reverse wrappers
+│   │   │   ├── weather/
+│   │   │   │   ├── api/                # fetch wrappers for /api/weather/*
+│   │   │   │   ├── hooks/              # useCurrentAndDaily, useHourly, useProviders
+│   │   │   │   ├── lib/                # metric-thresholds, format, slice-hourly
+│   │   │   │   └── components/
+│   │   │   │       ├── forecast-section.tsx      # orchestrator (state + queries)
+│   │   │   │       ├── provider-model-switcher.tsx # shadcn Select, (provider, model) dropdown
+│   │   │   │       ├── daily/                    # transposed daily table
+│   │   │   │       │   ├── daily-summary-table.tsx
+│   │   │   │       │   ├── day-header.tsx
+│   │   │   │       │   └── metric-row.tsx
+│   │   │   │       ├── hourly/                   # drill-down + day picker + slice toggle
+│   │   │   │       │   ├── hourly-table.tsx
+│   │   │   │       │   ├── hourly-header.tsx
+│   │   │   │       │   ├── hourly-row.tsx
+│   │   │   │       │   ├── granularity-toggle.tsx
+│   │   │   │       │   ├── granularity-option.tsx
+│   │   │   │       │   └── nav-button.tsx
+│   │   │   │       └── shared/                   # cross-table primitives
+│   │   │   │           ├── chip-cell.tsx
+│   │   │   │           ├── column-header.tsx
+│   │   │   │           └── wind-arrow.tsx
 │   │   │   └── preferences/            # (Phase 5)
 │   │   ├── shared/
 │   │   │   ├── ui/                     # shadcn primitives (Button, Card, Input, ...)
@@ -163,6 +185,28 @@ homework_ecorobotix/
 │   │   │       │       └── auth.routes.test.ts
 │   │   │       ├── test-fakes.ts       # Reusable test doubles (in-memory repo, fake hasher)
 │   │   │       └── auth.module.ts      # Composition root: wires adapters → use cases → routes
+│   │   │
+│   │   │   # The other bounded contexts follow the same DDD-light layering.
+│   │   │   # `weather/` is a representative example of a slightly richer module:
+│   │   │   #
+│   │   │   #   weather/
+│   │   │   #     domain/weather.errors.ts            # WeatherProviderNotAvailable / FetchFailed / ModelNotAvailable
+│   │   │   #     ports/
+│   │   │   #       weather-provider.ts                # the WeatherProvider port (2 methods + options bag)
+│   │   │   #       user-preferences-reader.ts         # read port for the preferredProvider field
+│   │   │   #     application/
+│   │   │   #       resolve-provider.ts                # resolve provider id + assert model is available
+│   │   │   #       get-current-and-daily.usecase.ts
+│   │   │   #       get-hourly.usecase.ts
+│   │   │   #       list-providers.usecase.ts
+│   │   │   #     infrastructure/
+│   │   │   #       open-meteo.provider.ts             # adapter, fetch injected
+│   │   │   #       yr-no.provider.ts                  # adapter with its own HTTP-aware cache
+│   │   │   #       cached-provider.ts                 # generic LRU+TTL decorator (used for open-meteo only)
+│   │   │   #       user-preferences-reader.prisma.ts
+│   │   │   #     interface/weather.routes.ts          # GET /weather, /weather/hourly, /weather/providers
+│   │   │   #     test-fakes.ts                        # in-memory user-prefs reader, fake provider
+│   │   │   #     weather.module.ts
 │   │   ├── shared/                     # Cross-cutting infrastructure
 │   │   │   └── db/
 │   │   │       └── prisma.client.ts    # Prisma singleton
@@ -268,26 +312,42 @@ Build the project in this order. Do not skip ahead; each phase relies on the pre
 9. Commit: `feat(sites): CRUD + default management`.
 
 ### Phase 3 — Weather Provider Architecture + P1
-1. Define the `WeatherProvider` interface in `api/src/weather/provider.ts` (see §7.2).
-2. Define unified types in `shared/src/weather.types.ts`: `CurrentWeather`, `DailyForecast`, `HourlyForecast`, `GeocodingResult`.
-3. Implement `open-meteo.ts` adapter (current, daily, hourly, geocoding endpoints; map raw → unified types).
-4. Implement `yr-no.ts` adapter (note: requires a User-Agent header per Yr.no policy).
-5. Implement `cache/` wrapper around `lru-cache` with TTL config per data type (see §7.3).
-6. Implement Fastify routes: `GET /api/weather/current`, `GET /api/weather/forecast`, with provider selection via query param `?provider=`.
-7. Implement `GET /api/providers` returning available providers (omit those whose required API key is missing).
-8. Set up `@fastify/swagger` + `fastify-type-provider-zod` on the API for auto-generated docs at `/docs`.
-9. Tests: adapter normalization (one fixture per provider), provider availability detection, cache hit/miss/expiry.
-10. Commit: `feat(weather): multi-provider abstraction + open-meteo + yr-no`.
+1. Define the `WeatherProvider` port in `api/src/modules/weather/ports/weather-provider.ts` (see §7.2). Two methods, matching the UX granularity rather than the upstream data taxonomy:
+   - `getCurrentAndDaily(lat, lng, days, opts?)` returns a `{ current, daily }` bundle — the dashboard's primary view, one HTTP call upstream, one cache entry, one frontend request.
+   - `getHourly(lat, lng, isoDate, opts?)` returns the day's hourly array for the on-demand drill-down.
+   - Optional `models?: ReadonlyArray<{ id, displayName }>` for providers that let callers pick a numerical model (Open-Meteo); `opts.model` flows from the route query to the upstream call.
+2. Define unified types in `shared/src/weather.types.ts`: `CurrentWeather`, `DailyForecast`, `HourlyForecast`, `CurrentAndDaily`, `WeatherProviderInfo` (with optional `models`), query schemas.
+3. Implement `open-meteo.provider.ts` adapter (one HTTP call combines `current=...&hourly=...&daily=...`; piggy-backs `relative_humidity_2m` in hourly so daily can aggregate a humidity mean — Open-Meteo's daily endpoint has none). Exposes a curated `OPEN_METEO_MODELS` list (`best_match` / `ecmwf_ifs025` / `icon_seamless` / `gfs_global`).
+4. Implement `yr-no.provider.ts` adapter (Met.no Locationforecast 2.0). Required User-Agent header per their TOS. Single upstream payload; bundle + hourly slice the same cached response.
+5. Caching:
+   - `cached-provider.ts` decorator — generic LRU+TTL keyed by `(coord, days, model)` for the bundle and `(coord, date, model)` for hourly. Used for Open-Meteo (no native HTTP cache contract).
+   - Yr.no owns its cache inside its adapter — `If-Modified-Since` revalidation with `Last-Modified` / `Expires` headers, as required by their TOS. Wrapping with the generic decorator would defeat the conditional-GET contract.
+6. Use cases (`application/`):
+   - `resolveProvider(registry, prefsReader, userId, requestedId)` — priority: `?provider=` → user preference → `open-meteo` fallback. Raises `WeatherProviderNotAvailable` (→ 404) if nothing valid resolves.
+   - `assertModelAvailable(provider, modelId)` — raises `WeatherProviderModelNotAvailable` (→ 400) on unknown models, or any model when the provider doesn't support multi-model.
+   - `getCurrentAndDaily`, `getHourly`, `listProviders` orchestrate the above.
+7. Implement Fastify routes (all behind `requireAuth`):
+   - `GET /api/weather?lat&lng&days?&provider?&model?` → `{ current, daily }`
+   - `GET /api/weather/hourly?lat&lng&date&provider?&model?` → `HourlyForecast[]`
+   - `GET /api/weather/providers` → `WeatherProviderInfo[]` (with `models` flattened by the frontend switcher into 5 entries: 4 Open-Meteo models + Yr.no).
+8. `UserPreferencesReader` mini-port + Prisma adapter inside the weather module so the use cases can read `preferredProvider` without coupling to a full preferences module (Phase 5 will spawn the real bounded context with write paths).
+9. `@fastify/swagger` + `fastify-type-provider-zod` were already wired in Phase 0; the new routes auto-document at `/docs`.
+10. Tests: cache hit/miss/expiry (real short TTLs, not fake timers), per-adapter mapping with representative fixtures, model validation, HTTP-aware revalidation (304 path), route mapping for the domain errors. ~75 weather tests on top of the existing API tests.
+11. Commits split into 3.A skeleton+cache → 3.B Open-Meteo → 3.C use cases+routes+module (+ shared `test-app` helper for the integration tests) → 3.D Yr.no → 3.E multi-models.
 
-### Phase 4 — Forecast UI + Chart
-1. Build the site detail page: current conditions card + forecast chart + provider switcher dropdown.
-2. Implement the provider switcher (only shows available providers; switching refetches via TanStack Query invalidation).
-3. Build the Recharts multi-series chart: 4 toggleable metrics (temp, precip, wind, humidity), 7-day daily by default, 14-day toggle, drill-down to hourly on day click.
-4. Implement temperature unit conversion at display time (read `UserPreferences.temperatureUnit`).
-5. Build the dashboard view: grid of site cards with current snapshot (uses default site in highlight position).
-6. Build the Leaflet map view: markers for each saved site with label tooltips. Use OpenStreetMap tiles, no API key.
-7. Tests: unit conversion, chart series toggling, dashboard rendering with 0 / 1 / many sites.
-8. Commit: `feat(weather): forecast UI, chart, map view, provider switcher`.
+### Phase 4 — Forecast UI (chip tables, not Recharts)
+1. **Web API client + hooks** (`api/weather.api.ts`, `useCurrentAndDaily`, `useHourly`, `useProviders`) — thin wrappers parsing through the shared Zod schemas at the boundary.
+2. **`DailySummaryTable` — transposed**: days run across as columns, the four metrics stack as rows. Each cell carries a coloured chip with a graduated background per metric (`metric-thresholds.ts` owns the tier scale + Tailwind class matrix). On mobile, horizontal scroll happens on the table only; the sticky first column keeps the metric labels visible. The day-column header shows a weather hint icon (sun / cloud / rain / snowflake) coloured to match the dominant condition. Tapping anywhere in a column selects that day for the hourly drill-down; on selection, the wrapper scrolls only `scrollLeft` to bring the column into view (never the page's vertical scroll, which would snap mobile users back to the top).
+3. **`HourlyHeader`** card between the two tables. 3-column grid: prev-day arrow flush left, selected date centred, then a `[3h | 1h]` granularity toggle + next-day arrow flush right. Lets the agent navigate days without scrolling back to the daily.
+4. **`HourlyTable`** — same chip language as the daily. Slices computed by `slice-hourly.ts` (3 h = 8 windows / 1 h = 24 rows). Wind cells include a small `WindArrow` rotated `direction + 180°` so the arrow points downwind (sprayer drift direction). `temperature` mean, `precipitation` sum, `wind` max, `humidity` mean per slice; wind direction snapped to the slice midpoint.
+5. **`ForecastSection`** orchestrator: owns `selectedDate` + `sliceHours` state, auto-pins the first available day on load so the hourly is never empty, plumbs the queries.
+6. **Tabular chip UI rather than Recharts**: pivoted after agri-context review — chips on a grid scan faster than a multi-series line chart for the typical decision ("can I spray tomorrow morning?") and degrade better on mobile. Recharts dependency removed from the stack.
+7. **Per-file split** (`daily/`, `hourly/`, `shared/` subfolders under `components/`) so the project's "1 component per file" rule applies cleanly: `ChipCell`, `ColumnHeader`, `WindArrow` are shared between the two tables instead of duplicated.
+8. **Provider + model switcher** (`provider-model-switcher.tsx`, shadcn `Select` primitive) lives **inside `ForecastSection`**, placed between the site selector and the daily table. Reads `/api/weather/providers` via `useProviders()` and flattens the `(provider, models)` tree into a single grouped dropdown (5 entries today — `Open-Meteo · Best match / · ECMWF / · ICON / · GFS`, then `Yr.no`). The `(providerId, model)` selection state lives on `ForecastSection` so it **persists across site switches** (the component is mounted without a `key`, React reuses the instance) — matches the agent's expectation that picking "ECMWF" once applies to the next site too. Switching refetches via TanStack Query invalidation (query keys include `providerId` and `model`). Selection auto-pins to the first available entry on first providers load so the trigger never shows a blank placeholder while data is already on screen.
+9. **Temperature unit conversion at display time** (read `UserPreferences.temperatureUnit`) — wired in Phase 5 when the preferences module lands; until then defaults to Celsius.
+10. **Leaflet map view** — already built in Phase 2 (`SitesMap` + `MobileMapDrawer`). Stays unchanged here.
+11. Tests (Phase 4.F): unit conversion, chip tier resolution, slice aggregation edge cases, provider switcher render with N entries.
+12. Commits: 4.A hooks → 4.B daily v1 → 4.C hourly + transposed daily + slice toggle + per-file split → 4.D provider switcher → 4.E polish → 4.F RTL tests.
 
 ### Phase 5 — Preferences + Settings
 1. Implement `GET /api/me/preferences` and `PATCH /api/me/preferences`.
@@ -347,39 +407,66 @@ export const siteCreateSchema = z.object({
 export type SiteCreate = z.infer<typeof siteCreateSchema>
 ```
 
-### 7.2 WeatherProvider pattern — multi-source abstraction
-The weather layer is built around an interface so additional providers plug in without touching the rest of the code.
+### 7.2 WeatherProvider pattern — multi-source + multi-model abstraction
+The weather layer is built around a port whose method shape matches the **UX granularity**, not the upstream data taxonomy. Two methods, one bundle + one drill-down:
 
 ```ts
-// api/src/weather/provider.ts
-export interface WeatherProvider {
-  id: WeatherProviderId
-  displayName: string
-  requiresApiKey: boolean
-  isAvailable: () => boolean
+// api/src/modules/weather/ports/weather-provider.ts
+export type WeatherProviderCallOptions = Readonly<{ model?: string }>;
 
-  getCurrent(lat: number, lng: number): Promise<CurrentWeather>
-  getDailyForecast(lat: number, lng: number, days: number): Promise<DailyForecast[]>
-  getHourlyForecast(lat: number, lng: number, date: Date): Promise<HourlyForecast[]>
-  getGeocoding?(query: string): Promise<GeocodingResult[]>
+export interface WeatherProvider {
+  readonly id: WeatherProviderId;          // "open-meteo" | "yr-no"
+  readonly displayName: string;
+  readonly requiresApiKey: boolean;
+  readonly models?: ReadonlyArray<WeatherProviderModel>;  // optional — providers without
+                                                          // multi-model support omit it
+  isAvailable(): boolean;
+
+  getCurrentAndDaily(
+    latitude: number,
+    longitude: number,
+    days: number,
+    opts?: WeatherProviderCallOptions,
+  ): Promise<CurrentAndDaily>;
+
+  getHourly(
+    latitude: number,
+    longitude: number,
+    isoDate: string,
+    opts?: WeatherProviderCallOptions,
+  ): Promise<HourlyForecast[]>;
+
+  getGeocoding?(query: string): Promise<GeocodingResult[]>;
 }
 ```
 
-Each implementation maps its raw API response to the **unified types** in `shared/src/weather.types.ts`.
+Each implementation maps its raw API response to the **unified types** in `shared/src/weather.types.ts`. The bundle method matters: it means one upstream HTTP call per dashboard view, one cache entry, one frontend request, and an internally-consistent snapshot (you never see a `current` from t0 paired with a `daily` from t0+5min).
 
-**Provider availability** is determined at startup by reading env vars (for keyed providers). Exposed via `GET /api/providers`. The frontend switcher **hides** providers whose key is absent — not greys them out, to avoid frustration for users who cannot obtain a key.
+**Multi-model** (Open-Meteo): adapters that expose `models` advertise a curated list of numerical models (Open-Meteo: `best_match`, `ecmwf_ifs025`, `icon_seamless`, `gfs_global`). The `opts.model` flows from the route query into the upstream call. The use case rejects unknown models AND any model on providers that don't support multi-model — asking Yr.no for `ecmwf_ifs025` is a client mistake, not a silent no-op (→ HTTP 400).
 
-**Switch behavior is per-request, one at a time** — no consensus/averaging across providers. Refrigerator-clear UX: the user sees the raw output of the selected source.
+**Provider availability** is determined at startup by reading env vars (for keyed providers). Exposed via `GET /api/weather/providers`. The frontend switcher **hides** providers whose key is absent — not greys them out, to avoid frustration for users who cannot obtain a key. The switcher flattens the `(provider, models)` tuples into a single dropdown (5 entries today: 4 Open-Meteo models + Yr.no).
+
+**Switch behavior is per-request, one at a time** — no consensus/averaging across providers. The agent sees the raw output of the selected source.
 
 ### 7.3 Caching strategy
-External weather APIs are cached server-side via `lru-cache`:
-- Cache key: `<providerId>:<endpoint>:<lat>:<lng>:<paramsHash>`
-- TTL per data type:
-  - `current` → 10 min
-  - `daily forecast` → 30 min
-  - `hourly forecast` → 15 min
-  - `geocoding` → 24 h
-- Frontend cache: TanStack Query (stale-while-revalidate, refetch on focus, default `staleTime` configured per query)
+Two patterns coexist, picked per provider depending on what the upstream contract supports.
+
+**Generic `createCachedProvider` decorator** (used for Open-Meteo). LRU+TTL, no HTTP revalidation:
+- Two buckets keyed by:
+  - bundle: `(coord, days, model)` — TTL 10 min (gated by the freshness of `current`; daily would tolerate longer but bundling forces the shorter)
+  - hourly: `(coord, date, model)` — TTL 15 min
+- Coordinates rounded to 4 decimals (~11 m) so callers querying near-identical points share entries.
+- Bounded eviction (LRUCache `max: 500` per bucket).
+- `model` is part of the key so different (provider, model) tuples don't collide.
+
+**HTTP-aware cache (Yr.no, baked into the adapter)**. Met.no's TOS *require* respecting `Last-Modified` + `Expires` — repeated unconditional GETs can get the client blocked, so the decorator approach above would defeat the contract.
+- `LRUCache<coord, { payload, lastModified, expires }>`
+- Fresh reads while `expires > now` skip the network entirely.
+- Past `Expires` the adapter revalidates with `If-Modified-Since: <lastModified>`. A 304 keeps the cached payload and extends the expiry; a 200 replaces it.
+- Single payload per coord because Yr.no returns the whole timeseries (current + multi-day + hourly) in one fetch — `getCurrentAndDaily` and `getHourly` slice the same cached response.
+- Safety-net 15-min TTL if upstream omits `Expires`.
+
+**Frontend cache**: TanStack Query, stale-while-revalidate, query keys include `providerId` + `model` so switcher changes invalidate cleanly. `staleTime` ≈ 5 min on forecast data (mirrors the upstream cache TTL), 1 h on the providers list (essentially static at runtime).
 
 ### 7.4 Authentication flow
 - **Email + password** credentials, validated via Zod schemas in `shared/`
@@ -501,7 +588,8 @@ Load via Google Fonts in `index.html` or via Fontsource. Set `font-feature-setti
 
 ### Key UI patterns
 - **Site card**: icon + label + current temp/precip snapshot + heart toggle + delete affordance
-- **Metric strip**: horizontal scrollable bar of metric chips at the top of site detail (icon + label + value)
+- **Transposed daily chip table** (Phase 4): days in columns, metrics in rows, every cell a colour-graded chip. Sticky first column for metric labels; horizontal scroll on the table only (page scroll stays vertical on mobile). Day column is selectable as a whole, not just its header. Wind cells embed a small arrow rotated to point downwind.
+- **Hourly drill-down** under a header card: prev/next day arrows + slice granularity toggle (3 h / 1 h) inline with the centred date label. Same chip language as the daily.
 - **Hero header**: dark-navy band with title + back button + provider switcher dropdown on site detail
 - **Empty state**: centered illustration / icon + two CTAs (Search / Use my location)
 
@@ -634,7 +722,7 @@ These are explicit decisions. Do not introduce them.
 | D3 | `Site` model (not "Location") + dual search (geocoding + lat/lng) + Leaflet map view | Aligns with agri domain vocabulary; supports remote sites not in any geocoder; map view honors "track 10+ sites quickly" |
 | D4 | 7-day daily forecast (extensible to 14), hourly drill-down, 4 toggleable metrics | 7d is the reliable horizon; hourly drill-down for same-day decisions; 4 metrics critical for agri (not just temperature) |
 | D5 | Alerts/thresholds out of MVP scope, listed first in README improvements | 4-6h to implement properly; high product-thinking signal in README without dev cost |
-| D6 | Multi-source weather via `WeatherProvider` interface, P1 = Open-Meteo + Yr.no, P2 = +Bright Sky/OpenWeatherMap/WeatherAPI | Honors "multiple sources" intent; switch (not consensus) keeps UX transparent; phased to manage time risk |
+| D6 | Multi-source weather via `WeatherProvider` interface, P1 = Open-Meteo + Yr.no. Multi-model Open-Meteo (4 curated: best_match / ECMWF / ICON / GFS) flattened into the switcher alongside Yr.no. P2 (Bright Sky / OpenWeatherMap / WeatherAPI) deferred. | Honors "multiple sources" intent; multi-models add cheap divergence visibility (ECMWF vs GFS on the same coord) without taking on a 3rd vendor's TOS and HTTP contract; switch (not consensus) keeps UX transparent. |
 | D7 | Vite + React 19 + TS strict + TanStack Router + Fastify + Prisma + Node 22 LTS | Standard mainstream stack, no Next.js, Bun ruled out for ecosystem stability |
 | D8 | TanStack Query (server state) + React Context (client state) + lru-cache (backend) — no Redux, no Zustand, no Redis | Server state ≠ client state; client surface too small; in-memory cache sufficient for single-instance backend |
 | D9 | Tailwind v4 + shadcn/ui + Inter + brand palette extracted from Ecorobotix logo SVG | Customizable (no lock-in); colors authentic and defensible |
@@ -642,6 +730,9 @@ These are explicit decisions. Do not introduce them.
 | D11 | Local-first deployment via Docker Compose, no wifi-mobile binding, Render cloud as stretch | Reviewer uses DevTools mobile mode; cloud only if time permits |
 | D12 | Single default site, heart icon; no automatic fallback if the default is deleted | Respects user agency (US #6 explicit); singular ("a default") rules out multi-favorites in MVP |
 | D13 | Vitest + RTL + Playwright (2 E2E); TS strict (minus `exactOptionalPropertyTypes`); Biome; Husky + lint-staged + commitlint; commits direct to `main` | Meaningful tests; quality enforced mechanically; solo workflow keeps velocity high |
+| D14 | `WeatherProvider` shape matches UX granularity: `getCurrentAndDaily` bundle + `getHourly` drill-down (instead of 3 granular methods or a single combined endpoint). | One upstream call per dashboard view, internally-consistent snapshot, switcher refetch invalidates the right keys. |
+| D15 | Yr.no owns its HTTP-aware cache inside its adapter (`If-Modified-Since` + 304 handling), NOT the generic `createCachedProvider` LRU+TTL decorator. | Met.no TOS require respecting `Last-Modified` / `Expires`; the generic decorator would defeat that contract. Open-Meteo (no native HTTP cache) still uses the decorator. |
+| D16 | Tabular chip UI for the forecast (transposed daily with days in columns + chip per cell; hourly drill-down with same chip language + 3 h / 1 h slice toggle + prev/next day nav) — Recharts dropped from the stack. | Chips on a grid scan faster than a multi-series chart for the typical agri decision ("can I spray tomorrow morning?"); transposed layout keeps the table within the mobile viewport (horizontal scroll inside the table only, page scroll stays vertical); the same chip language carries between daily and hourly so the agent reads risk by hue without re-learning the scale. |
 
 ---
 
@@ -652,7 +743,9 @@ In rough priority order:
 - **Threshold alerts** (rain > 15mm/24h, wind > 20km/h, humidity > 90% for 6h → mildew risk, overnight frost). Highest-value addition for agri context.
 - **Polygon sites** (draw on satellite map, centroid + area). Currently sites are single GPS points.
 - **Weather provider phase 2** (Bright Sky, OpenWeatherMap, WeatherAPI) — architecture ready, adapters pending.
-- **HTTP-aware caching** (respect `Cache-Control`, `If-Modified-Since` revalidation for Yr.no).
+- **Multi-series visual chart** (Recharts) overlaid with the chip table — the chip table covers the agri decision well, but a chart adds shape/trend reading for power users (peak detection, daily envelope). Originally planned, pivoted away from for the MVP after agri-context review.
+- **Daily humidity mean from Yr.no** (currently null in Yr.no's daily — requires a circular mean over hourly entries, out of MVP scope).
+- **Yr.no daily wind dominant direction** (same reason as above).
 - **Redis** for multi-instance backend (currently in-memory LRU).
 - **Password reset + email verification + rate-limiting + 2FA** on auth.
 - **OAuth providers** (Google/Microsoft) as alternative login methods.
@@ -676,6 +769,7 @@ In rough priority order:
 | `pnpm lint` | Biome check on the whole repo |
 | `pnpm format` | Biome format --write on the whole repo |
 | `pnpm typecheck` | `tsc --noEmit` in each workspace |
+| `pnpm verify` | Runs typecheck + lint + test in one go — what to run before every commit |
 | `pnpm --filter api db:migrate` | Apply Prisma migrations |
 | `pnpm --filter api db:seed` | Seed demo user + sample site |
 | `pnpm --filter api db:studio` | Open Prisma Studio (DB GUI) |
@@ -706,6 +800,19 @@ In rough priority order:
 ```bash
 pnpm --filter api test src/weather/open-meteo.test.ts
 pnpm --filter web test src/features/sites/SiteCard.test.tsx
+```
+
+**Resync `@agriwatch/shared` after adding an export**
+The `shared` package is consumed via `file:../shared`. Neither pnpm nor Vite re-syncs automatically when a new symbol is added to `shared/src/`. Symptoms: `TS2305: Module '@agriwatch/shared' has no exported member 'X'` (backend) or `Uncaught SyntaxError: The requested module ... does not provide an export named 'X'` (frontend at runtime).
+```bash
+# Re-link in the consumer packages
+rm -rf api/node_modules/@agriwatch/shared web/node_modules/@agriwatch/shared
+cd api && pnpm install
+cd ../web && pnpm install
+
+# Purge Vite's pre-bundled dep cache so the dev server re-optimises
+rm -rf web/node_modules/.vite
+# Then restart `pnpm dev`
 ```
 
 ---

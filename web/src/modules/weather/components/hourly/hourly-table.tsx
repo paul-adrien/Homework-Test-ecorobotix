@@ -8,6 +8,11 @@ import { HourlyRow } from "./hourly-row.tsx";
 type HourlyTableProps = Readonly<{
   hourly: ReadonlyArray<HourlyForecast>;
   sliceHours: SliceHours;
+  /** ISO `YYYY-MM-DD` (UTC) of the day being shown. Used to detect when the
+   * selected day is "today" so past hours can be hidden — they're just
+   * noise once they've elapsed. Days other than today render the full
+   * 24-hour grid. */
+  selectedDate: string;
 }>;
 
 /**
@@ -18,9 +23,19 @@ type HourlyTableProps = Readonly<{
  * daily table — same chip gradient per metric, same wind arrow — so the
  * agent's eye doesn't have to re-learn the colour scale when switching
  * tables.
+ *
+ * When the agent is looking at today, past slices (those whose end has
+ * elapsed) are dropped — the table shows the rest of the day only. The
+ * cutoff is computed at render time, so refetches (every 5 min via
+ * TanStack Query) keep it roughly in sync without a dedicated timer.
  */
-export function HourlyTable({ hourly, sliceHours }: HourlyTableProps) {
-  const slices = useMemo(() => aggregateToSlices(hourly, sliceHours), [hourly, sliceHours]);
+export function HourlyTable({ hourly, sliceHours, selectedDate }: HourlyTableProps) {
+  const slices = useMemo(() => {
+    const now = new Date();
+    const todayUtc = now.toISOString().slice(0, 10);
+    const fromHour = selectedDate === todayUtc ? now.getUTCHours() : undefined;
+    return aggregateToSlices(hourly, sliceHours, { fromHour });
+  }, [hourly, sliceHours, selectedDate]);
 
   return (
     <div className="rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-surface)]">

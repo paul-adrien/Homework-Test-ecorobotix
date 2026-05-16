@@ -3,10 +3,12 @@ import { AlertCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useCurrentAndDaily } from "../hooks/use-current-and-daily.ts";
 import { useHourly } from "../hooks/use-hourly.ts";
+import { useProviders } from "../hooks/use-providers.ts";
 import type { SliceHours } from "../lib/slice-hourly.ts";
 import { DailySummaryTable } from "./daily/daily-summary-table.tsx";
 import { HourlyHeader } from "./hourly/hourly-header.tsx";
 import { HourlyTable } from "./hourly/hourly-table.tsx";
+import { ProviderModelSwitcher, type ProviderSelection } from "./provider-model-switcher.tsx";
 
 const DEFAULT_DAYS = 7;
 
@@ -17,15 +19,41 @@ type ForecastSectionProps = Readonly<{
 /**
  * Forecast block for a selected site. Owns the data fetch for both the
  * daily summary (current + multi-day bundle) and the hourly drill-down
- * for the currently picked day. The selected day defaults to the first
+ * for the currently picked day, plus the active weather source selection
+ * (provider + optional model). The selected day defaults to the first
  * available day (typically today) so the agent sees an hourly breakdown
  * on first load without needing an extra tap; switching day is a
- * one-click action on the daily table row.
+ * one-click action on the daily table row. The selected source persists
+ * across site switches because this component is re-used (no `key` prop on
+ * the parent), which matches the agent's expectation that picking "ECMWF"
+ * once applies to whatever site they look at next.
  */
 export function ForecastSection({ site }: ForecastSectionProps) {
-  const bundleQuery = useCurrentAndDaily({ site, days: DEFAULT_DAYS });
+  const [selection, setSelection] = useState<ProviderSelection | null>(null);
+  const providersQuery = useProviders();
+  const bundleQuery = useCurrentAndDaily({
+    site,
+    days: DEFAULT_DAYS,
+    providerId: selection?.providerId,
+    model: selection?.model,
+  });
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [sliceHours, setSliceHours] = useState<SliceHours>(3);
+
+  // Auto-pin the first available (provider, model) entry once the providers
+  // list resolves. The backend would have served the same data via its own
+  // fallback to the user's preferred provider, but mirroring the choice in
+  // the trigger ensures the agent can always read what's currently displayed
+  // — no silent "default in use, switcher empty" mismatch.
+  useEffect(() => {
+    if (selection !== null) return;
+    const providers = providersQuery.data;
+    if (providers === undefined || providers.length === 0) return;
+    const first = providers[0];
+    if (first === undefined) return;
+    const firstModel = first.models?.[0];
+    setSelection({ providerId: first.id, model: firstModel?.id });
+  }, [providersQuery.data, selection]);
 
   // Auto-pin the first available day when the bundle loads, OR when the
   // currently-selected date disappears from the new bundle (provider/site
@@ -42,13 +70,20 @@ export function ForecastSection({ site }: ForecastSectionProps) {
     }
   }, [bundleQuery.data, selectedDate]);
 
-  const hourlyQuery = useHourly({ site, date: selectedDate });
+  const hourlyQuery = useHourly({
+    site,
+    date: selectedDate,
+    providerId: selection?.providerId,
+    model: selection?.model,
+  });
 
   return (
     <section
       aria-label={`Forecast for ${site.label}`}
       className="flex w-full flex-1 flex-col gap-3"
     >
+      <ProviderModelSwitcher selection={selection} onChange={setSelection} />
+
       {bundleQuery.isPending ? (
         <p className="rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-surface)] px-4 py-6 text-center text-[var(--color-text-secondary)] text-sm">
           Loading forecast…
@@ -98,7 +133,13 @@ export function ForecastSection({ site }: ForecastSectionProps) {
         </div>
       ) : null}
 
-      {hourlyQuery.data ? <HourlyTable hourly={hourlyQuery.data} sliceHours={sliceHours} /> : null}
+      {hourlyQuery.data && selectedDate !== null ? (
+        <HourlyTable
+          hourly={hourlyQuery.data}
+          sliceHours={sliceHours}
+          selectedDate={selectedDate}
+        />
+      ) : null}
     </section>
   );
 }

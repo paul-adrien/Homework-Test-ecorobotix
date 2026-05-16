@@ -188,7 +188,7 @@ describe("createOpenMeteoProvider", () => {
 
       const modelIds = provider.models?.map((m) => m.id) ?? [];
       expect(modelIds).toContain("best_match");
-      expect(modelIds).toContain("ecmwf_ifs04");
+      expect(modelIds).toContain("ecmwf_ifs025");
       expect(modelIds).toContain("icon_seamless");
       expect(modelIds).toContain("gfs_global");
     });

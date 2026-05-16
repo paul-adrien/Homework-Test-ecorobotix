@@ -13,7 +13,7 @@ import type {
  */
 export type WeatherProviderCallOptions = Readonly<{
   /**
-   * Provider-specific model id (e.g. `ecmwf_ifs04`). Providers that expose a
+   * Provider-specific model id (e.g. `ecmwf_ifs025`). Providers that expose a
    * `models` list use it to pick which numerical model to query upstream;
    * providers without multi-model support ignore it.
    */

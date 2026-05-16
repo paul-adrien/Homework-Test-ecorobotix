@@ -11,7 +11,6 @@ import {
 import { WindArrow } from "../shared/wind-arrow.tsx";
 import { DayHeader } from "./day-header.tsx";
 import { MetricRow } from "./metric-row.tsx";
-import { StickyCorner } from "./sticky-corner.tsx";
 
 type DailySummaryTableProps = Readonly<{
   daily: ReadonlyArray<DailyForecast>;
@@ -69,7 +68,10 @@ export function DailySummaryTable({ daily, selectedDate, onSelectDate }: DailySu
       <table className="w-full border-collapse text-sm">
         <thead>
           <tr className="border-[var(--color-border-subtle)] border-b">
-            <StickyCorner />
+            <th
+              scope="col"
+              className="sticky left-0 z-10 min-w-[3rem] border-[var(--color-border-subtle)] border-r bg-[var(--color-surface-alt)] px-1 py-2 sm:min-w-[7rem] sm:px-3"
+            />
             {daily.map((day) => (
               <DayHeader
                 key={day.date}
