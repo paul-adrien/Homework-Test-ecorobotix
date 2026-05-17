@@ -16,6 +16,9 @@ type MobileSiteSelectorProps = Readonly<{
   sites: SitePublic[];
   selectedSiteId: string | null;
   onSelect: (siteId: string) => void;
+  /** Notified when the agent finishes the create flow — the dashboard
+   * uses it to immediately switch the forecast over to the new site. */
+  onSiteCreated?: (site: SitePublic) => void;
 }>;
 
 /**
@@ -24,13 +27,26 @@ type MobileSiteSelectorProps = Readonly<{
  * bottom-sheet listing every site so the agent can switch without losing the
  * map underneath.
  */
-export function MobileSiteSelector({ sites, selectedSiteId, onSelect }: MobileSiteSelectorProps) {
+export function MobileSiteSelector({
+  sites,
+  selectedSiteId,
+  onSelect,
+  onSiteCreated,
+}: MobileSiteSelectorProps) {
   const [open, setOpen] = useState(false);
   const selectedSite = sites.find((s) => s.id === selectedSiteId) ?? sites[0];
 
   function handleSelect(siteId: string) {
     onSelect(siteId);
     setOpen(false);
+  }
+
+  function handleCreated(site: SitePublic) {
+    // Close the drawer so the agent lands directly on the new site's
+    // forecast — keeping the list open over the dashboard would force a
+    // pointless extra dismiss tap.
+    setOpen(false);
+    onSiteCreated?.(site);
   }
 
   return (
@@ -60,7 +76,7 @@ export function MobileSiteSelector({ sites, selectedSiteId, onSelect }: MobileSi
       <DrawerContent>
         <DrawerHeader className="flex-row items-center justify-between">
           <DrawerTitle>My sites ({sites.length})</DrawerTitle>
-          <AddSiteButton variant="secondary" size="sm" />
+          <AddSiteButton variant="secondary" size="sm" onCreated={handleCreated} />
         </DrawerHeader>
         <DrawerBody>
           <ul className="flex flex-col gap-1">

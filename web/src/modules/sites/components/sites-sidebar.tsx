@@ -6,6 +6,9 @@ type SitesSidebarProps = Readonly<{
   sites: SitePublic[];
   selectedSiteId: string | null;
   onSelect: (siteId: string) => void;
+  /** Notified when the agent finishes the create flow — the dashboard
+   * uses it to immediately switch the forecast over to the new site. */
+  onSiteCreated?: (site: SitePublic) => void;
 }>;
 
 /**
@@ -14,7 +17,12 @@ type SitesSidebarProps = Readonly<{
  * gives users a second entry into the create flow (the header also exposes
  * one).
  */
-export function SitesSidebar({ sites, selectedSiteId, onSelect }: SitesSidebarProps) {
+export function SitesSidebar({
+  sites,
+  selectedSiteId,
+  onSelect,
+  onSiteCreated,
+}: SitesSidebarProps) {
   return (
     <aside className="flex h-full min-h-0 w-full flex-col gap-2 rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-surface)] p-4">
       <h2 className="px-2 font-medium text-[var(--color-text-muted)] text-xs uppercase tracking-wide">
@@ -35,7 +43,7 @@ export function SitesSidebar({ sites, selectedSiteId, onSelect }: SitesSidebarPr
         ))}
       </ul>
       <div className="mt-2 border-[var(--color-border-subtle)] border-t pt-3">
-        <AddSiteButton variant="secondary" size="sm" />
+        <AddSiteButton variant="secondary" size="sm" onCreated={onSiteCreated} />
       </div>
     </aside>
   );

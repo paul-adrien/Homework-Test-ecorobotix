@@ -88,6 +88,7 @@ export function DashboardPage() {
                 sites={sites}
                 selectedSiteId={selectedSiteId}
                 onSelect={setSelectedSiteId}
+                onSiteCreated={(site) => setSelectedSiteId(site.id)}
               />
             </div>
             <MobileMapDrawer
@@ -121,6 +122,7 @@ export function DashboardPage() {
               sites={sites}
               selectedSiteId={selectedSiteId}
               onSelect={setSelectedSiteId}
+              onSiteCreated={(site) => setSelectedSiteId(site.id)}
             />
           </div>
           <div className="isolate relative min-h-0 flex-1 overflow-hidden rounded-lg border border-[var(--color-border-subtle)]">
