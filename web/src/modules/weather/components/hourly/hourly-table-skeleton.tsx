@@ -1,3 +1,9 @@
+/**
+ * biome-ignore-all lint/a11y/useSemanticElements: `<output>` is phrasing
+ * content and cannot legally contain a `<table>` (flow content); the
+ * `role="status"` on the wrapping `<div>` is the correct semantic for a
+ * tabular loading skeleton.
+ */
 import { Skeleton } from "@/shared/ui/skeleton.tsx";
 import type { SliceHours } from "../../lib/slice-hourly.ts";
 

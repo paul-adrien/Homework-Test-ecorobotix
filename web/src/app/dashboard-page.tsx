@@ -30,12 +30,11 @@ export function DashboardPage() {
   const { data: sites, isLoading } = useSites();
   const { data: preferences } = usePreferences();
   const [selectedSiteId, setSelectedSiteId] = useState<string | null>(null);
-  // The forecast section owns its own selectedDate, but we mirror it here
-  // so the map can disable its radar overlay when the agent isn't looking
-  // at today (RainViewer covers past 2 h + 30 min only).
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const isMobile = useIsMobile();
-  const radarEnabled = isToday(selectedDate);
+  const radarEnabled = selectedDate
+    ? selectedDate === new Date().toISOString().slice(0, 10)
+    : false;
 
   // First-load selection honours the user's default site (US6) when it's
   // present in the current sites list. Once the user picks something
@@ -142,12 +141,4 @@ export function DashboardPage() {
       </div>
     </DashboardLayout>
   );
-}
-
-/** Returns true when the ISO date string `YYYY-MM-DD` matches today in UTC.
- * Forecast dates are always emitted in UTC by the providers so the
- * comparison stays consistent across the agent's timezone. */
-function isToday(isoDate: string | null): boolean {
-  if (isoDate === null) return false;
-  return isoDate === new Date().toISOString().slice(0, 10);
 }

@@ -11,7 +11,7 @@ export async function searchLocations(
   query: string,
   options: { limit?: number; signal?: AbortSignal } = {},
 ): Promise<GeocodingResult[]> {
-  const url = new URL(`${API_BASE}/search`, window.location.origin);
+  const url = new URL(`${API_BASE}/search`, globalThis.location.origin);
   url.searchParams.set("q", query);
   if (options.limit !== undefined) url.searchParams.set("limit", String(options.limit));
 
@@ -28,7 +28,7 @@ export async function reverseGeocode(
   longitude: number,
   options: { signal?: AbortSignal } = {},
 ): Promise<GeocodingResult | null> {
-  const url = new URL(`${API_BASE}/reverse`, window.location.origin);
+  const url = new URL(`${API_BASE}/reverse`, globalThis.location.origin);
   url.searchParams.set("lat", String(latitude));
   url.searchParams.set("lng", String(longitude));
 
