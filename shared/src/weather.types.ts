@@ -9,6 +9,8 @@ import { z } from "zod";
 export const weatherProviderIdSchema = z.enum(["open-meteo", "yr-no"]);
 export type WeatherProviderId = z.infer<typeof weatherProviderIdSchema>;
 
+const isoDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+
 /**
  * Current conditions snapshot at a coordinate. Every measurement is nullable
  * because not every provider exposes every variable; the UI handles missing
@@ -25,32 +27,26 @@ export const currentWeatherSchema = z.object({
   observedAt: z.string().datetime(),
   temperature: z.number().nullable(),
   apparentTemperature: z.number().nullable(),
-  precipitationLastHour: z.number().nullable(),
-  precipitationProbability: z.number().nullable(),
-  windSpeed: z.number().nullable(),
-  windDirection: z.number().nullable(),
-  humidity: z.number().nullable(),
-  uvIndex: z.number().nullable(),
-  soilMoisture: z.number().nullable(),
+  precipitationLastHour: z.number().min(0).nullable(),
+  precipitationProbability: z.number().min(0).max(100).nullable(),
+  windSpeed: z.number().min(0).nullable(),
+  windDirection: z.number().min(0).max(360).nullable(),
+  humidity: z.number().min(0).max(100).nullable(),
+  uvIndex: z.number().min(0).nullable(),
+  soilMoisture: z.number().min(0).max(1).nullable(),
   weatherCode: z.number().nullable(),
 });
 export type CurrentWeather = z.infer<typeof currentWeatherSchema>;
 
 export const dailyForecastSchema = z.object({
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  date: isoDateSchema,
   temperatureMin: z.number().nullable(),
   temperatureMax: z.number().nullable(),
-  precipitationSum: z.number().nullable(),
-  precipitationProbabilityMax: z.number().nullable(),
-  windSpeedMax: z.number().nullable(),
-  /**
-   * Dominant wind direction over the day, in degrees (0 = wind coming
-   * FROM the north, meteorological convention). Providers that don't
-   * expose a daily dominant figure (e.g. Yr.no, where it would require
-   * a circular mean over the hourly timeseries) leave this `null`.
-   */
-  windDirectionDominant: z.number().nullable(),
-  humidityMean: z.number().nullable(),
+  precipitationSum: z.number().min(0).nullable(),
+  precipitationProbabilityMax: z.number().min(0).max(100).nullable(),
+  windSpeedMax: z.number().min(0).nullable(),
+  windDirectionDominant: z.number().min(0).max(360).nullable(),
+  humidityMean: z.number().min(0).max(100).nullable(),
   weatherCode: z.number().nullable(),
 });
 export type DailyForecast = z.infer<typeof dailyForecastSchema>;
@@ -59,11 +55,11 @@ export const dailyForecastListSchema = z.array(dailyForecastSchema);
 export const hourlyForecastSchema = z.object({
   time: z.string().datetime(),
   temperature: z.number().nullable(),
-  precipitation: z.number().nullable(),
-  precipitationProbability: z.number().nullable(),
-  windSpeed: z.number().nullable(),
-  windDirection: z.number().nullable(),
-  humidity: z.number().nullable(),
+  precipitation: z.number().min(0).nullable(),
+  precipitationProbability: z.number().min(0).max(100).nullable(),
+  windSpeed: z.number().min(0).nullable(),
+  windDirection: z.number().min(0).max(360).nullable(),
+  humidity: z.number().min(0).max(100).nullable(),
   weatherCode: z.number().nullable(),
 });
 export type HourlyForecast = z.infer<typeof hourlyForecastSchema>;
@@ -133,6 +129,6 @@ export type WeatherQuery = z.infer<typeof weatherQuerySchema>;
  */
 export const hourlyForecastQuerySchema = z.object({
   ...coordinatesShape,
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  date: isoDateSchema,
 });
 export type HourlyForecastQuery = z.infer<typeof hourlyForecastQuerySchema>;

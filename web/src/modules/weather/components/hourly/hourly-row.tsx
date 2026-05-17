@@ -12,6 +12,10 @@ import { WindArrow } from "../shared/wind-arrow.tsx";
 
 type HourlyRowProps = Readonly<{
   slice: HourSlice;
+  /** Length of the slice in hours — passed to `getPrecipChipStyle` so it
+   * picks a window-appropriate "full intensity" threshold (rainfall
+   * accumulates, so 5 mm in 1 h is a flash burst whereas 5 mm in 3 h is
+   * light steady rain). */
   sliceHours: SliceHours;
 }>;
 
