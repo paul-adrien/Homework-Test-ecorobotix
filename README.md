@@ -8,7 +8,7 @@ Submitted as the technical-test deliverable for the Ecorobotix application.
 
 ## Demo credentials
 
-After running `pnpm setup` (see below), the seed creates one demo user:
+After running `pnpm bootstrap` (see below), the seed creates one demo user:
 
 | Email | Password |
 |---|---|
@@ -32,7 +32,9 @@ The seed also adds one sample site (Yverdon-les-Bains, near the Ecorobotix HQ) s
 git clone <repo> && cd homework_ecorobotix
 cp .env.example .env
 docker compose up -d                  # PostgreSQL on :5432
-pnpm setup                            # install all packages + migrate + seed
+pnpm bootstrap                        # install root + shared + api + web,
+                                      # migrate the DB, then seed the demo
+                                      # user and sample site
 pnpm dev                              # web on :5173, api on :3000
 ```
 

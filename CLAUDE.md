@@ -256,7 +256,7 @@ The reviewer should be able to clone and run with these commands:
 git clone <repo> && cd homework_ecorobotix
 cp .env.example .env
 docker compose up -d              # PostgreSQL
-pnpm run setup                    # install all + db:migrate + db:seed
+pnpm bootstrap                    # install root + shared/api/web, migrate, seed
 pnpm dev                          # runs web + api in parallel
 ```
 
@@ -761,7 +761,7 @@ In rough priority order:
 | Command | What it does |
 |---|---|
 | `pnpm dev` | Start `web` (Vite, port 5173) and `api` (Fastify, port 3000) in parallel |
-| `pnpm run setup` | Install dependencies in `shared/`, `api/`, `web/`, then run migrations + seed |
+| `pnpm bootstrap` | Install root + `shared/`, `api/`, `web/`, then run DB migrations + seed |
 | `pnpm build` | Build both `web` and `api` for production |
 | `pnpm test` | Run Vitest in both packages |
 | `pnpm test:e2e` | Run Playwright (requires `pnpm dev` running) |

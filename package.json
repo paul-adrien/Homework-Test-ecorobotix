@@ -8,9 +8,9 @@
     "node": ">=22"
   },
   "scripts": {
-    "setup": "pnpm setup:install && pnpm setup:db",
-    "setup:install": "concurrently -n shared,api,web -c yellow,green,blue \"pnpm -C shared install\" \"pnpm -C api install\" \"pnpm -C web install\"",
-    "setup:db": "pnpm -C api db:migrate && pnpm -C api db:seed",
+    "bootstrap": "pnpm install && pnpm bootstrap:install && pnpm bootstrap:db",
+    "bootstrap:install": "concurrently -n shared,api,web -c yellow,green,blue \"pnpm -C shared install\" \"pnpm -C api install\" \"pnpm -C web install\"",
+    "bootstrap:db": "pnpm -C api db:migrate && pnpm -C api db:seed",
     "dev": "concurrently -n web,api -c blue,green \"pnpm -C web dev\" \"pnpm -C api dev\"",
     "build": "pnpm -C api build && pnpm -C web build",
     "test": "pnpm -C shared test && pnpm -C api test && pnpm -C web test",
