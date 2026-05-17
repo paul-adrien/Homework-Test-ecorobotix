@@ -19,35 +19,40 @@ export function SiteSearchInput({ onSelect, autoFocus }: SiteSearchInputProps) {
   const { data: results = [], isFetching, isError } = useGeocodingSearch(query);
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex flex-col gap-1.5">
-        <label
-          htmlFor="site-search-query"
-          className="font-medium text-[var(--color-text-primary)] text-sm"
-        >
-          Search for a location
-        </label>
-        <div className="relative">
-          <Search
-            className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-[var(--color-text-muted)]"
-            aria-hidden="true"
-          />
-          <Input
-            id="site-search-query"
-            type="search"
-            inputMode="search"
-            autoComplete="off"
-            placeholder="Yverdon, Lausanne, …"
-            className="pl-9"
-            autoFocus={autoFocus}
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-        </div>
+    // `relative` anchors the absolutely-positioned suggestions dropdown
+    // below the input so a long list doesn't push the dialog footer
+    // (Save / Cancel) off the bottom of the viewport.
+    <div className="relative flex flex-col gap-1.5">
+      <label
+        htmlFor="site-search-query"
+        className="font-medium text-[var(--color-text-primary)] text-sm"
+      >
+        Search for a location
+      </label>
+      <div className="relative">
+        <Search
+          className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-[var(--color-text-muted)]"
+          aria-hidden="true"
+        />
+        <Input
+          id="site-search-query"
+          type="search"
+          inputMode="search"
+          autoComplete="off"
+          placeholder="Yverdon, Lausanne, …"
+          className="pl-9"
+          autoFocus={autoFocus}
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
       </div>
 
       {query.trim().length >= 2 ? (
-        <ul className="max-h-64 overflow-y-auto rounded-md border border-[var(--color-border-subtle)] bg-[var(--color-surface)] shadow-sm">
+        // Floating overlay: `absolute top-full` parks it right below the
+        // input, `z-20` lifts it above the dialog's "selected location"
+        // card / label field / footer, `max-h-72` + internal scroll keeps
+        // a long results list inside the viewport.
+        <ul className="absolute top-full right-0 left-0 z-20 mt-1 max-h-72 overflow-y-auto rounded-md border border-[var(--color-border-subtle)] bg-[var(--color-surface)] shadow-lg">
           {isFetching && results.length === 0 ? (
             <li className="px-3 py-2 text-[var(--color-text-secondary)] text-sm">Searching…</li>
           ) : null}
@@ -65,7 +70,13 @@ export function SiteSearchInput({ onSelect, autoFocus }: SiteSearchInputProps) {
             <li key={`${result.latitude}-${result.longitude}-${result.displayName}`}>
               <button
                 type="button"
-                onClick={() => onSelect(result)}
+                onClick={() => {
+                  onSelect(result);
+                  // Close the dropdown — clearing the query both hides the
+                  // overlay and frees up the "selected location" card to
+                  // breathe. The user can re-type to switch their pick.
+                  setQuery("");
+                }}
                 className="flex w-full items-start gap-2 px-3 py-2 text-left text-sm transition-colors hover:bg-[var(--color-surface-alt)] focus-visible:bg-[var(--color-surface-alt)] focus-visible:outline-none"
               >
                 <MapPin

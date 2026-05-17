@@ -70,7 +70,7 @@ export function DashboardPage() {
 
   if (!sites || sites.length === 0) {
     return (
-      <DashboardLayout hideAddSite>
+      <DashboardLayout>
         <EmptyState />
       </DashboardLayout>
     );

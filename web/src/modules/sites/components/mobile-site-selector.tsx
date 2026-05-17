@@ -9,6 +9,7 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "@/shared/ui/drawer.tsx";
+import { AddSiteButton } from "./add-site-button.tsx";
 import { SiteRow } from "./site-row.tsx";
 
 type MobileSiteSelectorProps = Readonly<{
@@ -57,8 +58,9 @@ export function MobileSiteSelector({ sites, selectedSiteId, onSelect }: MobileSi
         </button>
       </DrawerTrigger>
       <DrawerContent>
-        <DrawerHeader>
+        <DrawerHeader className="flex-row items-center justify-between">
           <DrawerTitle>My sites ({sites.length})</DrawerTitle>
+          <AddSiteButton variant="secondary" size="sm" />
         </DrawerHeader>
         <DrawerBody>
           <ul className="flex flex-col gap-1">

@@ -49,7 +49,7 @@ export function MobileMapDrawer({
           Map
         </Button>
       </DrawerTrigger>
-      <DrawerContent className="h-[75vh]">
+      <DrawerContent className="h-[92dvh]">
         <DrawerHeader>
           <DrawerTitle>Sites map</DrawerTitle>
         </DrawerHeader>
