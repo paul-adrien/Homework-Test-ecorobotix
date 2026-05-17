@@ -15,6 +15,9 @@ type MobileMapDrawerProps = Readonly<{
   sites: SitePublic[];
   selectedSiteId: string | null;
   onSelect: (siteId: string) => void;
+  /** Forwarded to `SitesMap` — hides the radar overlay when the agent
+   * isn't looking at today in the forecast. */
+  radarEnabled?: boolean;
 }>;
 
 /**
@@ -25,7 +28,12 @@ type MobileMapDrawerProps = Readonly<{
  * lives behind a CTA rather than competing with the forecast for screen real
  * estate.
  */
-export function MobileMapDrawer({ sites, selectedSiteId, onSelect }: MobileMapDrawerProps) {
+export function MobileMapDrawer({
+  sites,
+  selectedSiteId,
+  onSelect,
+  radarEnabled,
+}: MobileMapDrawerProps) {
   const [open, setOpen] = useState(false);
 
   function handleSelect(siteId: string) {
@@ -46,7 +54,12 @@ export function MobileMapDrawer({ sites, selectedSiteId, onSelect }: MobileMapDr
           <DrawerTitle>Sites map</DrawerTitle>
         </DrawerHeader>
         <div className="isolate relative flex-1 overflow-hidden">
-          <SitesMap sites={sites} selectedSiteId={selectedSiteId} onSelect={handleSelect} />
+          <SitesMap
+            sites={sites}
+            selectedSiteId={selectedSiteId}
+            onSelect={handleSelect}
+            radarEnabled={radarEnabled}
+          />
         </div>
       </DrawerContent>
     </Drawer>

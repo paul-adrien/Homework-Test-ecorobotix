@@ -17,6 +17,10 @@ const DEFAULT_DAYS = 7;
 
 type ForecastSectionProps = Readonly<{
   site: SitePublic;
+  /** Notified whenever the user picks a different day in the daily table.
+   * The dashboard uses it to decide whether to enable the radar overlay
+   * (which only makes sense when the agent is looking at today). */
+  onSelectedDateChange?: (date: string | null) => void;
 }>;
 
 /**
@@ -31,7 +35,7 @@ type ForecastSectionProps = Readonly<{
  * the parent), which matches the agent's expectation that picking "ECMWF"
  * once applies to whatever site they look at next.
  */
-export function ForecastSection({ site }: ForecastSectionProps) {
+export function ForecastSection({ site, onSelectedDateChange }: ForecastSectionProps) {
   const [selection, setSelection] = useState<ProviderSelection | null>(null);
   const providersQuery = useProviders();
   const bundleQuery = useCurrentAndDaily({
@@ -72,6 +76,12 @@ export function ForecastSection({ site }: ForecastSectionProps) {
       setSelectedDate(dates[0] ?? null);
     }
   }, [bundleQuery.data, selectedDate]);
+
+  // Bubble the current selection up so the dashboard can drive the map
+  // (e.g. disable the radar overlay when the agent isn't looking at today).
+  useEffect(() => {
+    onSelectedDateChange?.(selectedDate);
+  }, [selectedDate, onSelectedDateChange]);
 
   const hourlyQuery = useHourly({
     site,
