@@ -102,6 +102,16 @@ export function ForecastSection({ site, onSelectedDateChange }: ForecastSectionP
         <TemperatureUnitToggle />
       </div>
 
+      {/* Freshness caption — surfaces the upstream observation time
+          (provider's snapshot stamp, not our cache age) so the agent
+          can tell at a glance whether the displayed numbers are minutes
+          or hours old. Only rendered once the bundle resolves. */}
+      {bundleQuery.data ? (
+        <p className="text-[var(--color-text-muted)] text-xs">
+          Data from {formatObservationTime(bundleQuery.data.current.observedAt)}
+        </p>
+      ) : null}
+
       {bundleQuery.isPending ? <DailySummaryTableSkeleton days={DEFAULT_DAYS} /> : null}
 
       {bundleQuery.isError ? (
@@ -160,4 +170,16 @@ export function ForecastSection({ site, onSelectedDateChange }: ForecastSectionP
       ) : null}
     </section>
   );
+}
+
+/**
+ * Formats an ISO datetime (the provider's `observedAt` stamp) as a local
+ * `HH:mm`. The provider's snapshot already accounts for the upstream
+ * model's update cadence, so the displayed time tells the agent how
+ * stale the data is independent of our backend cache layer.
+ */
+function formatObservationTime(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  return date.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
 }
