@@ -61,15 +61,39 @@ export function SitesMap({ sites, selectedSiteId, onSelect, radarEnabled = true 
     setActiveIndex(Math.max(nowcastStartIndex - 1, 0));
   }, [frames.length, nowcastStartIndex]);
 
-  // Drive the animation loop. Reset on play/pause toggle and on frame-count
-  // changes (refetch every 5 min could grow the array).
+  // Drive the animation forward. Stops at the last frame (no wrap-around
+  // loop) — wrapping made the radar visibly jump 2 h backwards every
+  // cycle, which read as a glitch even though it was deliberate. Pressing
+  // play again from the end naturally rewinds via `handleTogglePlay`
+  // below.
   useEffect(() => {
     if (!isPlaying || frames.length === 0) return;
     const id = setInterval(() => {
-      setActiveIndex((i) => (i + 1) % frames.length);
+      setActiveIndex((i) => {
+        if (i >= frames.length - 1) {
+          setIsPlaying(false);
+          return i;
+        }
+        return i + 1;
+      });
     }, FRAME_INTERVAL_MS);
     return () => clearInterval(id);
   }, [isPlaying, frames.length]);
+
+  /** Toggle handler used by the timeline. Pressing play while parked at
+   * the last frame rewinds to frame 0 first so the agent gets the full
+   * "past 2 h → now" replay rather than a one-frame nudge that does
+   * nothing. */
+  function handleTogglePlay() {
+    if (isPlaying) {
+      setIsPlaying(false);
+      return;
+    }
+    if (frames.length > 0 && activeIndex >= frames.length - 1) {
+      setActiveIndex(0);
+    }
+    setIsPlaying(true);
+  }
 
   return (
     <>
@@ -145,7 +169,7 @@ export function SitesMap({ sites, selectedSiteId, onSelect, radarEnabled = true 
             setIsPlaying(false);
             setActiveIndex(index);
           }}
-          onTogglePlay={() => setIsPlaying((p) => !p)}
+          onTogglePlay={handleTogglePlay}
         />
       ) : (
         <div className="pointer-events-none absolute right-2 bottom-10 left-2 z-[1000] flex justify-center">

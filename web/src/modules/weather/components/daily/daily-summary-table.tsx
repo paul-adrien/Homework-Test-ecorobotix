@@ -4,10 +4,10 @@ import { useEffect, useRef } from "react";
 import { useTemperatureUnit } from "@/modules/preferences/hooks/use-temperature-unit.ts";
 import { formatNumber } from "../../lib/format.ts";
 import {
-  getHumidityTier,
-  getPrecipTier,
-  getTempTier,
-  getWindTier,
+  getDailyTempChipStyle,
+  getHumidityChipStyle,
+  getPrecipChipStyle,
+  getWindChipStyle,
 } from "../../lib/metric-thresholds.ts";
 import { WindArrow } from "../shared/wind-arrow.tsx";
 import { DayHeader } from "./day-header.tsx";
@@ -91,10 +91,9 @@ export function DailySummaryTable({ daily, selectedDate, onSelectDate }: DailySu
             unit={tempSymbol}
             cells={daily.map((day) => ({
               date: day.date,
-              tier: getTempTier(day.temperatureMin, day.temperatureMax),
+              style: getDailyTempChipStyle(day.temperatureMin, day.temperatureMax),
               content: formatTempRange(day.temperatureMin, day.temperatureMax),
             }))}
-            metric="temp"
             selectedDate={selectedDate}
             onSelectDate={onSelectDate}
           />
@@ -104,10 +103,9 @@ export function DailySummaryTable({ daily, selectedDate, onSelectDate }: DailySu
             unit="mm"
             cells={daily.map((day) => ({
               date: day.date,
-              tier: getPrecipTier(day.precipitationSum),
+              style: getPrecipChipStyle(day.precipitationSum),
               content: formatNumber(day.precipitationSum, 1),
             }))}
-            metric="precip"
             selectedDate={selectedDate}
             onSelectDate={onSelectDate}
           />
@@ -117,7 +115,7 @@ export function DailySummaryTable({ daily, selectedDate, onSelectDate }: DailySu
             unit="km/h"
             cells={daily.map((day) => ({
               date: day.date,
-              tier: getWindTier(day.windSpeedMax),
+              style: getWindChipStyle(day.windSpeedMax),
               content: (
                 <span className="inline-flex items-center gap-1">
                   {formatNumber(day.windSpeedMax)}
@@ -127,7 +125,6 @@ export function DailySummaryTable({ daily, selectedDate, onSelectDate }: DailySu
                 </span>
               ),
             }))}
-            metric="wind"
             selectedDate={selectedDate}
             onSelectDate={onSelectDate}
           />
@@ -137,10 +134,9 @@ export function DailySummaryTable({ daily, selectedDate, onSelectDate }: DailySu
             unit="%"
             cells={daily.map((day) => ({
               date: day.date,
-              tier: getHumidityTier(day.humidityMean),
+              style: getHumidityChipStyle(day.humidityMean),
               content: formatNumber(day.humidityMean),
             }))}
-            metric="humidity"
             selectedDate={selectedDate}
             onSelectDate={onSelectDate}
           />

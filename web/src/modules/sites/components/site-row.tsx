@@ -41,6 +41,7 @@ export function SiteRow({ site, isSelected, onSelect, onAfterDelete }: SiteRowPr
 
   return (
     <li
+      data-site-id={site.id}
       className={cn(
         "flex items-stretch rounded-md transition-colors",
         isSelected

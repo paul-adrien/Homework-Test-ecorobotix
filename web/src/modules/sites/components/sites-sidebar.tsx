@@ -1,4 +1,5 @@
 import type { SitePublic } from "@agriwatch/shared";
+import { useEffect, useRef } from "react";
 import { AddSiteButton } from "./add-site-button.tsx";
 import { SiteRow } from "./site-row.tsx";
 
@@ -23,16 +24,20 @@ export function SitesSidebar({
   onSelect,
   onSiteCreated,
 }: SitesSidebarProps) {
+  const listRef = useRef<HTMLUListElement>(null);
+
+  useEffect(() => {
+    if (selectedSiteId === null || listRef.current === null) return;
+    const target = listRef.current.querySelector<HTMLElement>(`[data-site-id="${selectedSiteId}"]`);
+    target?.scrollIntoView({ block: "nearest" });
+  }, [selectedSiteId]);
+
   return (
     <aside className="flex h-full min-h-0 w-full flex-col gap-2 rounded-lg border border-[var(--color-border-subtle)] bg-[var(--color-surface)] p-4">
       <h2 className="px-2 font-medium text-[var(--color-text-muted)] text-xs uppercase tracking-wide">
         My sites ({sites.length})
       </h2>
-      {/* `min-h-0` lets the list shrink when the parent box is short
-          (e.g. on the dashboard's 30% top-left tile); `overflow-y-auto`
-          then scrolls the rows instead of pushing the Add-site button
-          off the bottom. */}
-      <ul className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto">
+      <ul ref={listRef} className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto">
         {sites.map((site) => (
           <SiteRow
             key={site.id}

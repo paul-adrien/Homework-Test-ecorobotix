@@ -7,11 +7,13 @@
  */
 import type { ReactNode } from "react";
 import { cn } from "@/shared/lib/cn.ts";
-import { CHIP_CLASS, CHIP_NEUTRAL, type Metric, type Tier } from "../../lib/metric-thresholds.ts";
+import type { ChipStyle } from "../../lib/metric-thresholds.ts";
 
 type ChipCellProps = Readonly<{
-  metric: Metric;
-  tier: Tier | null;
+  /** Inline style spec for the chip — `null` means "no signal" and the
+   * chip renders in a neutral muted fill (so the cell still looks like
+   * a chip rather than vanishing into the row). */
+  style: ChipStyle | null;
   children: ReactNode;
   /** Optional click handler — when present the `<td>` becomes a click
    * target. Used by the daily table to make the whole column clickable. */
@@ -22,23 +24,28 @@ type ChipCellProps = Readonly<{
 }>;
 
 /**
- * `<td>` + chip wrapper used by both the daily and hourly tables — pulls
- * its background colour from `CHIP_CLASS[metric][tier]` so the same
- * visual scale stretches across both views. The chip fills the cell
- * width minus padding so wider columns on desktop don't leave large
- * white gutters between chips.
+ * `<td>` + chip wrapper used by both the daily and hourly tables. The
+ * background colour is an inline `rgba()` computed continuously from
+ * the metric value (see `getXxxChipStyle` in `lib/metric-thresholds`),
+ * so intensity scales smoothly with risk magnitude rather than stepping
+ * between four discrete tiers. Each metric uses its own hue family,
+ * which lets the agent identify the column/row at a glance.
  */
-export function ChipCell({ metric, tier, children, onClick, tdClassName }: ChipCellProps) {
-  const chipClass = tier === null ? CHIP_NEUTRAL : CHIP_CLASS[metric][tier];
+export function ChipCell({ style, children, onClick, tdClassName }: ChipCellProps) {
   return (
     <td
       onClick={onClick}
       className={cn("px-1 py-2 text-center sm:px-2", onClick ? "cursor-pointer" : "", tdClassName)}
     >
       <span
+        style={
+          style === null
+            ? undefined
+            : { backgroundColor: style.backgroundColor, color: style.color }
+        }
         className={cn(
           "flex w-full items-center justify-center whitespace-nowrap rounded-md px-1.5 py-1 font-mono text-sm tabular-nums sm:px-2",
-          chipClass,
+          style === null && "bg-[var(--color-surface-alt)] text-[var(--color-text-muted)]",
         )}
       >
         {children}

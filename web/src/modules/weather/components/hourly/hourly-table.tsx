@@ -9,10 +9,6 @@ import { HourlyRow } from "./hourly-row.tsx";
 type HourlyTableProps = Readonly<{
   hourly: ReadonlyArray<HourlyForecast>;
   sliceHours: SliceHours;
-  /** ISO `YYYY-MM-DD` (UTC) of the day being shown. Used to detect when the
-   * selected day is "today" so past hours can be hidden — they're just
-   * noise once they've elapsed. Days other than today render the full
-   * 24-hour grid. */
   selectedDate: string;
 }>;
 
@@ -62,7 +58,7 @@ export function HourlyTable({ hourly, sliceHours, selectedDate }: HourlyTablePro
         </thead>
         <tbody className="divide-y divide-[var(--color-border-subtle)]">
           {slices.map((slice) => (
-            <HourlyRow key={slice.startHour} slice={slice} />
+            <HourlyRow key={slice.startHour} slice={slice} sliceHours={sliceHours} />
           ))}
         </tbody>
       </table>

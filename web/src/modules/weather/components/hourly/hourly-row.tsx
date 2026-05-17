@@ -1,30 +1,31 @@
 import { useTemperatureUnit } from "@/modules/preferences/hooks/use-temperature-unit.ts";
 import { formatNumber } from "../../lib/format.ts";
 import {
-  getHumidityTier,
-  getPrecipTier,
-  getTempTier,
-  getWindTier,
+  getHourlyTempChipStyle,
+  getHumidityChipStyle,
+  getPrecipChipStyle,
+  getWindChipStyle,
 } from "../../lib/metric-thresholds.ts";
-import type { HourSlice } from "../../lib/slice-hourly.ts";
+import type { HourSlice, SliceHours } from "../../lib/slice-hourly.ts";
 import { ChipCell } from "../shared/chip-cell.tsx";
 import { WindArrow } from "../shared/wind-arrow.tsx";
 
-type HourlyRowProps = Readonly<{ slice: HourSlice }>;
+type HourlyRowProps = Readonly<{
+  slice: HourSlice;
+  sliceHours: SliceHours;
+}>;
 
 /**
  * One row of the hourly drill-down table: the slice's start hour as a row
- * header, then a `<ChipCell>` per metric. Same chip gradient as the daily
- * table so the visual scale carries over. Temperatures are converted at
- * display time to the user's preferred unit via `useTemperatureUnit`; the
- * tier still uses the raw Celsius value so the colour scale stays
- * consistent across units (frost-blue at <0 °C / 32 °F is the same chip).
+ * header, then a `<ChipCell>` per metric. Same chip language as the daily
+ * table — each metric gets its own hue (orange/blue for temp, blue for
+ * precip, slate for wind, amber/cyan for humidity) with opacity scaling
+ * by risk magnitude. Temperatures are converted at display time to the
+ * user's preferred unit via `useTemperatureUnit`; the chip colour still
+ * uses the raw Celsius value so the visual scale stays consistent
+ * across units (frost-blue at < 0 °C / 32 °F is the same chip).
  */
-export function HourlyRow({ slice }: HourlyRowProps) {
-  const tempTier = getTempTier(slice.temperatureMean, slice.temperatureMean);
-  const precipTier = getPrecipTier(slice.precipitationSum);
-  const windTier = getWindTier(slice.windSpeedMax);
-  const humidityTier = getHumidityTier(slice.humidityMean);
+export function HourlyRow({ slice, sliceHours }: HourlyRowProps) {
   const { formatTemp } = useTemperatureUnit();
 
   return (
@@ -35,13 +36,13 @@ export function HourlyRow({ slice }: HourlyRowProps) {
       >
         {slice.label}
       </th>
-      <ChipCell metric="temp" tier={tempTier}>
+      <ChipCell style={getHourlyTempChipStyle(slice.temperatureMean)}>
         {formatTemp(slice.temperatureMean)}
       </ChipCell>
-      <ChipCell metric="precip" tier={precipTier}>
+      <ChipCell style={getPrecipChipStyle(slice.precipitationSum, sliceHours)}>
         {formatNumber(slice.precipitationSum, 1)}
       </ChipCell>
-      <ChipCell metric="wind" tier={windTier}>
+      <ChipCell style={getWindChipStyle(slice.windSpeedMax)}>
         <span className="inline-flex items-center gap-1">
           {formatNumber(slice.windSpeedMax)}
           {slice.windDirectionMid === null ? null : (
@@ -49,7 +50,7 @@ export function HourlyRow({ slice }: HourlyRowProps) {
           )}
         </span>
       </ChipCell>
-      <ChipCell metric="humidity" tier={humidityTier}>
+      <ChipCell style={getHumidityChipStyle(slice.humidityMean)}>
         {formatNumber(slice.humidityMean)}
       </ChipCell>
     </tr>

@@ -1,11 +1,11 @@
 import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
-import type { Metric, Tier } from "../../lib/metric-thresholds.ts";
+import type { ChipStyle } from "../../lib/metric-thresholds.ts";
 import { ChipCell } from "../shared/chip-cell.tsx";
 
 export type DailyCellDescriptor = Readonly<{
   date: string;
-  tier: Tier | null;
+  style: ChipStyle | null;
   content: ReactNode;
 }>;
 
@@ -14,7 +14,6 @@ type MetricRowProps = Readonly<{
   label: string;
   unit: string;
   cells: ReadonlyArray<DailyCellDescriptor>;
-  metric: Metric;
   selectedDate: string | null;
   onSelectDate: (date: string) => void;
 }>;
@@ -30,7 +29,6 @@ export function MetricRow({
   label,
   unit,
   cells,
-  metric,
   selectedDate,
   onSelectDate,
 }: MetricRowProps) {
@@ -42,11 +40,6 @@ export function MetricRow({
       >
         <span className="inline-flex items-center gap-1.5">
           <Icon className="size-4 shrink-0" aria-hidden="true" />
-          {/* `sr-only` on mobile keeps the metric name accessible to screen
-              readers even when the visible column collapses to icon-only —
-              otherwise the `<th scope="row">` would have an empty
-              accessible name and the table would be unreadable for
-              non-sighted agents. */}
           <span className="sr-only sm:not-sr-only">{label}</span>
           <span className="hidden font-normal text-[10px] text-[var(--color-text-muted)] sm:inline">
             ({unit})
@@ -56,8 +49,7 @@ export function MetricRow({
       {cells.map((cell) => (
         <ChipCell
           key={cell.date}
-          metric={metric}
-          tier={cell.tier}
+          style={cell.style}
           onClick={() => onSelectDate(cell.date)}
           tdClassName={cell.date === selectedDate ? "bg-[var(--color-primary-light)]/40" : ""}
         >
