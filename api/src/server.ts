@@ -40,17 +40,23 @@ async function buildServer() {
 
   await app.register(fastifyCookie);
 
+  const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 7; // 7 days
+
   await app.register(fastifySecureSession, {
     // Derive a 32-byte symmetric key deterministically from SESSION_SECRET so the secret
     // can be rotated by editing a single env var. In production this should be a
     // high-entropy value (32+ chars) loaded from a secret manager.
     key: createHash("sha256").update(env.SESSION_SECRET).digest(),
+    // Internal payload validity. Must match `cookie.maxAge` — otherwise the browser keeps
+    // sending the cookie after the payload's own expiry, producing 401s with a still-valid
+    // cookie. Default would be 24h, silently shorter than maxAge below.
+    expiry: SESSION_MAX_AGE_SECONDS,
     cookie: {
       path: "/",
       httpOnly: true,
       secure: env.NODE_ENV === "production",
       sameSite: "lax",
-      maxAge: 60 * 60 * 24 * 7, // 7 days
+      maxAge: SESSION_MAX_AGE_SECONDS,
     },
   });
 

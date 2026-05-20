@@ -15,15 +15,21 @@ type LatLngInputProps = Readonly<{
   onResolve: (result: GeocodingResult) => void;
 }>;
 
+// `Number("")` is 0 in JS, so an empty input would silently pass `z.coerce.number()`
+// and the -90/90 bounds. Normalize empty / nullish values to NaN first so coercion
+// fails with a "required" message instead of accepting a fake 0,0 coordinate.
+const coordinateField = (label: string, min: number, max: number) =>
+  z.preprocess(
+    (v) => (v === "" || v === null || v === undefined ? Number.NaN : v),
+    z.coerce
+      .number({ message: `${label} is required.` })
+      .min(min, `${label} must be between ${min} and ${max}.`)
+      .max(max, `${label} must be between ${min} and ${max}.`),
+  );
+
 const latLngSchema = z.object({
-  latitude: z.coerce
-    .number({ message: "Latitude must be a number." })
-    .min(-90, "Latitude must be between -90 and 90.")
-    .max(90, "Latitude must be between -90 and 90."),
-  longitude: z.coerce
-    .number({ message: "Longitude must be a number." })
-    .min(-180, "Longitude must be between -180 and 180.")
-    .max(180, "Longitude must be between -180 and 180."),
+  latitude: coordinateField("Latitude", -90, 90),
+  longitude: coordinateField("Longitude", -180, 180),
 });
 
 type LatLngForm = z.infer<typeof latLngSchema>;
@@ -44,7 +50,7 @@ export function LatLngInput({ onResolve }: LatLngInputProps) {
   } = useForm<LatLngForm>({
     resolver: zodResolver(latLngSchema),
     mode: "onBlur",
-    defaultValues: { latitude: "" as unknown as number, longitude: "" as unknown as number },
+    defaultValues: { latitude: undefined, longitude: undefined },
   });
 
   const submit = handleSubmit((values) => {

@@ -53,7 +53,7 @@ export function MobileMapDrawer({
         <DrawerHeader>
           <DrawerTitle>Sites map</DrawerTitle>
         </DrawerHeader>
-        <div className="isolate relative flex-1 overflow-hidden">
+        <div data-vaul-no-drag className="isolate relative flex-1 overflow-hidden">
           <SitesMap
             sites={sites}
             selectedSiteId={selectedSiteId}

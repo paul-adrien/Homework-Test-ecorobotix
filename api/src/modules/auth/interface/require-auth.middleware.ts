@@ -8,6 +8,9 @@ import { fastifySessionStore } from "../infrastructure/session-store.fastify.ts"
 export async function requireAuth(request: FastifyRequest, reply: FastifyReply): Promise<void> {
   const userId = fastifySessionStore.getUserId(request);
   if (!userId) {
+    // If the cookie was sent but the session is missing/expired, clear it on the response
+    // so the browser stops resending a stale cookie on every subsequent request.
+    fastifySessionStore.clear(request);
     return reply.code(401).send({ error: "Unauthorized" });
   }
 }

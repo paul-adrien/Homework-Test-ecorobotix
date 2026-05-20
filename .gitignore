@@ -33,6 +33,13 @@ pnpm-debug.log*
 # Internal working notes (not shipped)
 sujet.md
 points_restants.md
+entretien_lead_tech_prep.md
+entretien_cards_salle.md
+entretien_ddd_salle.md
+entretien_node_eventloop.md
+entretien_mobile_app.md
+entretien_tanstack_query.md
+entretien_nouvelles_features.md
 
 # Original brief PDF (provided by recruiter, kept locally only)
 Ecorobotix - Fullstack challenge.pdf
